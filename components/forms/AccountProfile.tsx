@@ -19,6 +19,8 @@ import Image from 'next/image'
 import { Textarea } from '../ui/textarea'
 import { isBase64Image } from '@/lib/utils'
 import { useUploadThing } from '@/lib/validations/uploadthing'
+import { updateUser } from '@/lib/actions/user.actions'
+import { usePathname, useRouter } from 'next/navigation'
 
 interface Props {
     user: {
@@ -36,7 +38,10 @@ interface Props {
 const AccountProfile = ({ user, btnTitle } : Props) => {
   const [files, setFiles ] = useState<File[]>([])
   const { startUpload } = useUploadThing("media")
-    const form = useForm<z.infer<typeof userValidation>>({
+  const pathname = usePathname()
+  const router = useRouter()
+
+  const form = useForm<z.infer<typeof userValidation>>({
         resolver: zodResolver(userValidation),
         defaultValues:{
           profile_photo:user?.image || "",
@@ -48,16 +53,7 @@ const AccountProfile = ({ user, btnTitle } : Props) => {
 
     const handleImage = (e: React.ChangeEvent<HTMLInputElement>, onChange: (value: string) => void) => {
         e.preventDefault();
-        // const file = e.target.files?.[0]
-        // if (file) {
-        //   const reader = new FileReader()
-        //   reader.onload = () => {
-        //     onChange(reader.result as string)
-        //   }
-        //   reader.readAsDataURL(file)
-        // }
-        
-
+     
         const fileReader = new FileReader()
         if (e.target.files && e.target.files.length > 0) {
           const file = e.target.files[0]
@@ -87,8 +83,25 @@ const AccountProfile = ({ user, btnTitle } : Props) => {
           }
         }
 
-        // 
+        await updateUser(
+          {
+            userId: user.id,
+            username: values.username,
+            name: values.name,
+            bio: values.bio,
+            image: values.profile_photo,
+            path: pathname
+          }
+          )
+
+          if(pathname === '/profile/edit'){
+            router.back()
+          }else{
+            router.push('/')
+          }
       }
+
+
   return (
     <Form {...form}>
     <form onSubmit={form.handleSubmit(onSubmit)} 
@@ -120,7 +133,7 @@ const AccountProfile = ({ user, btnTitle } : Props) => {
               className='account-form_image-input'
               onChange={e => handleImage(e,field.onChange)}/>
             </FormControl>
-            
+            <FormMessage/>
           </FormItem>
         )}
       />
@@ -139,6 +152,7 @@ const AccountProfile = ({ user, btnTitle } : Props) => {
               className='account-form_input text-light-2'
               {...field}/>
             </FormControl>
+            <FormMessage/>
             
           </FormItem>
         )}
@@ -158,6 +172,7 @@ const AccountProfile = ({ user, btnTitle } : Props) => {
               className='account-form_input text-light-2'
               {...field}/>
             </FormControl>
+            <FormMessage/>
             
           </FormItem>
         )}
@@ -177,6 +192,7 @@ const AccountProfile = ({ user, btnTitle } : Props) => {
               className='account-form_input text-light-2'
               {...field}/>
             </FormControl>
+            <FormMessage/>
             
           </FormItem>
         )}
