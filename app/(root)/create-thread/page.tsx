@@ -1,4 +1,5 @@
-import React from 'react'
+'use server'
+import React, { useState } from 'react'
 import { currentUser } from '@clerk/nextjs'
 import { redirect } from 'next/navigation'
 import { fetchUser } from '@/lib/actions/user.actions'
@@ -13,6 +14,7 @@ const page = async () => {
 
     if (user) {
         const userInfo = await fetchUser(user.id)
+        const userId = userInfo._id.toString();
         if(!userInfo?.onboarded){
             redirect('/onboarding')
     }
@@ -21,7 +23,7 @@ const page = async () => {
     return (
         <>
         <h1 className='head-text'>Create Thread</h1>
-        <PostThread userId={user.id} />
+        <PostThread userId={userId} />
         </>
     )
 }

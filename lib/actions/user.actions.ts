@@ -46,7 +46,7 @@ export async function updateUser(
 }
 
 export async function fetchUser(userId: string){
-
+    console.log("=====================",userId)
     try{
         connectToDB()
         const user = await User
