@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import User from "../models/user.model"
 import { connectToDB } from "../mongoose"
 import Thread from "../models/thread.model";
+import { FilterQuery, SortOrder } from "mongoose";
+import { use } from "react";
 
 interface Params {
     userId: string,
@@ -84,5 +86,78 @@ export async function fetchUserThreads(userId:string) {
 
     }catch(error:any){
         throw new Error(`Failed to fetch user's threads ${error.message}`)
+    }
+}
+
+export async function fetchUsers({
+    userId,
+    pageNumber=1,
+    pageSize=20,
+    searchQuery='',
+    sortBy='desc'
+}:{
+    userId: string,
+    pageNumber?: number,
+    pageSize?: number,
+    searchQuery?: string,
+    sortBy?: SortOrder
+}){
+    try{
+        connectToDB()
+        const skipAmount = pageSize * (pageNumber - 1)
+        const regex = new RegExp(searchQuery, 'i');
+        const query: FilterQuery<typeof User> = {
+            id:{
+                $ne: userId
+            },
+        }
+        if(searchQuery.trim() !== ''){
+            query['$or'] = [
+                {name: regex},
+                {username: regex}
+            ]
+        }
+        const sortOptions = {
+            createdAt: sortBy
+        
+        }
+        const usersQuery = User.find(query)
+        .sort(sortOptions)
+        .skip(skipAmount)
+        .limit(pageSize)
+
+        const totalUsers = await User.countDocuments(query)
+        const users = await usersQuery.exec()
+
+        const isNext = totalUsers > skipAmount + users.length
+        return { users, isNext }
+    }catch(err: any){
+        throw new Error(`failed to fetch users: ${err.message}`)
+    }
+}
+
+export async function getActivities(userId: string){
+    try{
+        connectToDB()
+        const userThreads = await Thread.find({author: userId})
+
+        const childThreadsId = userThreads.reduce((acc, thread) => {
+            return acc.concat(thread.children)
+        
+        },[])
+
+        const replies =  await Thread.find({
+            _id : { $in: childThreadsId },
+            author : { $ne: userId }
+        }).populate({
+            path:"author",
+            model: "User",
+            select: "name image _id"
+        })
+
+        return replies
+
+    } catch(err: any){
+        throw new Error(`failed to fetch user activities: ${err.message}`)
     }
 }
