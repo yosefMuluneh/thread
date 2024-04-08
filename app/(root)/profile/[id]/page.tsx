@@ -7,6 +7,10 @@ import { profileTabs } from '@/constants'
 import Image from 'next/image'
 import ThreadsTab from '@/components/shared/ThreadsTab'
 
+export const dynamicParams = false
+export const dynamic = 'force-static'
+
+
 const page = async ({ params } : { params: { id : string }}) => {
     const user = await currentUser()
 
