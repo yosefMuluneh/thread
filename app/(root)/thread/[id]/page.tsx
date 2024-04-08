@@ -7,6 +7,10 @@ import { redirect } from 'next/navigation'
 import { fetchThreadById } from '@/lib/actions/thread.actions'
 import Comment from '@/components/forms/Comment'
 
+export const dynamicParams = false
+export const dynamic = 'force-static'
+
+
 const page =  async({ params } : { params : { id : string}}) => {
     if(!params.id) return null
 
