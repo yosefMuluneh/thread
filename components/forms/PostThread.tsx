@@ -32,12 +32,15 @@ const PostThread =  ({ userId }:{ userId : string}) => {
                 }
     })
     const onSubmit = async (value: z.infer<typeof ThreadValidation>)=>{
+      const startTime = new Date().getTime()
       await createThread({
         author: userId,
         communityId: null,
         path: pathname,
         text: value.thread
       })
+      const endTime = new Date().getTime()
+      console.log('Time taken to create thread:', endTime - startTime)
 
       router.push('/')
     }

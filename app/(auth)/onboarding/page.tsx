@@ -1,10 +1,15 @@
 import AccountProfile from '@/components/forms/AccountProfile'
 import React from 'react'
 import { currentUser } from '@clerk/nextjs'
+import { fetchUser } from '@/lib/actions/user.actions'
 
 const  page = async () => {
   const user = await currentUser()
-  const userInfo = {}
+  if (!user) {
+    return null
+  }
+  const userInfos = await fetchUser(user.id)
+  const userInfo = JSON.parse(JSON.stringify(userInfos))
   const userData = {
     id : user?.id,
     objectid : userInfo?._id,
@@ -22,7 +27,7 @@ const  page = async () => {
         <section className='mt-9 bg-dark-2 p-10'>
           <AccountProfile
             user={userData}
-            btntitle="Continue"/>
+            btnTitle="Continue"/>
         </section>
     </main>
   )
