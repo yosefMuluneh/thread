@@ -29,7 +29,6 @@ const nextConfig = {
         },
       ],
     },
-  output:'export'
   };
   
   

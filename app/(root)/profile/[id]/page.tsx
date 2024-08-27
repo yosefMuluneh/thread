@@ -1,46 +1,38 @@
+'use server'
 import { currentUser } from '@clerk/nextjs'
 import { redirect } from 'next/navigation'
 import { fetchUser } from '@/lib/actions/user.actions'
 import ProfileHeader from '@/components/shared/ProfileHeader'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { profileTabs } from '@/constants'
 import Image from 'next/image'
 import ThreadsTab from '@/components/shared/ThreadsTab'
+import { profileTabs } from '@/constants'
 
-export const dynamicParams = false
-export const dynamic = 'force-static'
-
-
-const page = async ({ params } : { params: { id : string }}) => {
+const page = async ({ params } : { params :{ id : string}}) => {
     const user = await currentUser()
-
-    var userInfo : any = null
 
     if (!user) {
         redirect('/sign-in')
     }
 
-    if (user) {
-        userInfo = await fetchUser(params.id)
-        if(!userInfo?.onboarded){
-            redirect('/onboarding')
-        }
+   
+    const userInfo = await fetchUser(params.id)
+    if(!userInfo?.onboarded){
+        redirect('/onboarding')
+    
     }
-
-  return (
-    <section>
-        <ProfileHeader
-        accountId={userInfo.id}
-        authUserId={user.id}
-        name={userInfo.name}
-        username={userInfo.username}
-        imgUrl={userInfo.image}
-        bio={userInfo.bio} />
+    return (
+        <section>
+            <ProfileHeader
+            accountId={userInfo.id}
+            authUserId={user.id}
+            name={userInfo.name}
+            username={userInfo.username}
+            imgUrl={userInfo.image}
+            bio={userInfo.bio} />
 
         <div className='mt-9'>
-            <Tabs
-            defaultValue='threads' className='w-full'
-            >
+            <Tabs defaultValue='threads' className='w-full'>
                 <TabsList className='tab'>
                     {
                         profileTabs.map((tab)=>(
@@ -77,7 +69,7 @@ const page = async ({ params } : { params: { id : string }}) => {
             </Tabs>
         </div>
     </section>
-  )
-
+        )
 }
+
 export default page
