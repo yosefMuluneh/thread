@@ -26,7 +26,7 @@ const page = async ({ params } : { params: { id : string }}) => {
 
     const result = await fetchUsers({
         userId: user.id,
-        searchQuery: '',
+        searchString: '',
         pageNumber: 1,
         pageSize: 25
     })

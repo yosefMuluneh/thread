@@ -2,6 +2,7 @@ import AccountProfile from '@/components/forms/AccountProfile'
 import React from 'react'
 import { currentUser } from '@clerk/nextjs'
 import { fetchUser } from '@/lib/actions/user.actions'
+import { redirect } from 'next/navigation'
 
 const  page = async () => {
   const user = await currentUser()
@@ -10,13 +11,14 @@ const  page = async () => {
   }
   const userInfos = await fetchUser(user.id)
   const userInfo = JSON.parse(JSON.stringify(userInfos))
+  if (userInfo?.onboarded) redirect('/')
   const userData = {
     id : user?.id,
-    objectid : userInfo?._id,
-    username : userInfo?.username || user?.username,
-    name : userInfo?.name || user?.firstName,
-    bio : userInfo?.bio || '',
-    image : userInfo?.image || user?.imageUrl,
+    objectid : userInfo ?  userInfo?._id : user?.id,
+    username : userInfo ?  userInfo?.username : user?.username,
+    name : userInfo ?  userInfo?.name : user?.firstName,
+    bio : userInfo ?  userInfo?.bio : '',
+    image : userInfo ?  userInfo?.image : user?.imageUrl,
   }
   return (
     <main className='mx-auto flex max-w-3xl flex-col justify-start px-10 py-20'>
