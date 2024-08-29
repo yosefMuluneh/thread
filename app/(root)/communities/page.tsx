@@ -1,12 +1,6 @@
 import { currentUser } from '@clerk/nextjs'
 import { redirect } from 'next/navigation'
-import { fetchUser, fetchUsers } from '@/lib/actions/user.actions'
-import ProfileHeader from '@/components/shared/ProfileHeader'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { profileTabs } from '@/constants'
-import Image from 'next/image'
-import ThreadsTab from '@/components/shared/ThreadsTab'
-import UserCard from '@/components/cards/UserCard'
+import { fetchUser } from '@/lib/actions/user.actions'
 import { fetchCommunities } from '@/lib/actions/community.actions'
 import CommunityCard from '@/components/cards/CommunityCard'
 
@@ -38,7 +32,7 @@ const page = async ({ params } : { params: { id : string }}) => {
         <div className='mt-14 flex flex-col gap-9'>
             {
                 result.communities.length === 0 ? ( 
-                    <p className='no-result'>No users</p>
+                    <p className='no-result'>No community yet</p>
                   ) : (
                     <>
                     {

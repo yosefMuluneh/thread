@@ -25,8 +25,8 @@ comments:{
         image: string
     }
 }[],
-upvotes : number,
-downvotes: number,
+upvotes? : number,
+downvotes?: number,
 isComment?: boolean
 }
 
@@ -44,7 +44,6 @@ upvotes,
 downvotes,
 isComment
 }: Props) => {
-    {console.log('community=========', community)}
   return (
     <article className={`flex w-full flex-col rounded-xl 
     ${ isComment ? 'px-0 xs:px-7' : 'bg-dark-2 p-7'}`}>
@@ -79,6 +78,13 @@ isComment
                             width={24}
                             height={24}
                             className='cursor-pointer object-contain'/>
+                            {
+                                upvotes && upvotes > 0 && (
+                                    <p className='text-subtle-medium text-gray-1'>
+                                        {upvotes}
+                                    </p>
+                                )
+                            }
                             <Link href={`/thread/${id}`}>
                             <Image
                             src='/assets/reply.svg'
@@ -112,13 +118,22 @@ isComment
                         }
 
                     </div>
+                        
                 </div>
-                
             </div>
             {/* {Delete Thread} */}
             {/* { Show comment logos } */}
 
-        </div>
+        </div>{
+            !community && (
+                <div className='mt-5'>
+
+                <p className='text-subtle-medium text-gray-1'>
+                    { formatDateString(createdAt) }
+                </p>
+                </div>
+            ) }
+            
             {
                 !isComment && community && (
                     <Link href={`communities/${community.id}`} className='mt-5 flex items-center' >

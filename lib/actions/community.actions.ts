@@ -18,7 +18,6 @@ export async function createCommunity(
 ) {
   try {
     connectToDB();
-    console.log("Creating community.............");
     // Find the user with the provided unique id
     const user = await User.findOne({ id: createdById });
 
@@ -41,7 +40,6 @@ export async function createCommunity(
     user.communities.push(createdCommunity._id);
     await user.save();
 
-    console.log("Community created successfully", createdCommunity);
 
     return createdCommunity;
   } catch (error) {
@@ -76,7 +74,7 @@ export async function fetchCommunityPosts(id: string) {
   try {
     connectToDB();
 
-    const communityPosts = await Community.findById(id).populate({
+    const communityPosts = await Community.findOne({id}).populate({
       path: "threads",
       model: Thread,
       populate: [

@@ -15,6 +15,7 @@ interface Props {
 }
 
 function CommunityCard({ id, name, username, imgUrl, bio, members }: Props) {
+
   return (
     <article className='community-card'>
       <div className='flex flex-wrap items-center gap-3'>

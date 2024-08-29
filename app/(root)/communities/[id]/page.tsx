@@ -15,8 +15,6 @@ const page = async ({ params } : { params :{ id : string}}) => {
 
     const communityDetail = await fetchCommunityDetails(params.id)
 
-   
-   
     return (
         <section>
             <ProfileHeader
@@ -53,34 +51,29 @@ const page = async ({ params } : { params :{ id : string}}) => {
                     }
                 </TabsList>
                 
-                        <TabsContent value='threads' className='w-full text-light-1'>
-                            <ThreadsTab
-                            currentUserId={user.id}
-                            accountId={communityDetail?.id}
-                            accountType="Community" />
-                        </TabsContent>
+                <TabsContent value='threads' className='w-full text-light-1'>
+                    <ThreadsTab
+                    currentUserId={user.id}
+                    accountId={communityDetail?.id}
+                    accountType="Community" />
+                </TabsContent>
 
-                        <TabsContent value='members' className='w-full text-light-1'>
-                          <section className='mt-9 flex flex-col gap-10'>
-                            {
-                                communityDetail?.members.map((mem:any) => (
-                                    <UserCard 
-                                    key={mem.id}
-                                    id={mem.id}
-                                    name={mem.name}
-                                    username={mem.username}
-                                    imgUrl={mem.image}
-                                    personType='User' />
-                                ))
-                            }
-                          </section>
-                        </TabsContent>
-                        <TabsContent value='threads' className='w-full text-light-1'>
-                            <ThreadsTab
-                            currentUserId={user.id}
-                            accountId={communityDetail?.id}
-                            accountType="Community" />
-                        </TabsContent>
+                <TabsContent value='members' className='w-full text-light-1'>
+                    <section className='mt-9 flex flex-col gap-10'>
+                    {
+                        communityDetail?.members.map((mem:any) => (
+                            <UserCard 
+                            key={mem.id}
+                            id={mem.id}
+                            name={mem.name}
+                            username={mem.username}
+                            imgUrl={mem.image}
+                            personType='User' />
+                        ))
+                    }
+                    </section>
+                </TabsContent>
+                        
                   
             </Tabs>
         </div>
