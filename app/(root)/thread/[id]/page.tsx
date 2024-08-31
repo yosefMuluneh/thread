@@ -27,7 +27,7 @@ const page =  async({ params } : { params : { id : string}}) => {
         <div>
         <ThreadCard
             key={thread._id}
-            id={thread._id}
+            id={thread._id.toString()}
             currentUserId={user?.id}
             parentId={thread.parentId}
             content={thread.text}
@@ -35,7 +35,6 @@ const page =  async({ params } : { params : { id : string}}) => {
             community={thread.community}
             createdAt={thread.createdAt}
             comments={thread.children}
-            upvotes={thread.upvotes}
             downvotes={thread.downvotes}
                 />
         </div>
@@ -50,18 +49,17 @@ const page =  async({ params } : { params : { id : string}}) => {
             {
                 thread.children.map((childItem: any)=>(
                     <ThreadCard
-            key={childItem._id}
-            id={childItem._id}
-            currentUserId={user?.id}
-            parentId={childItem.parentId}
-            content={childItem.text}
-            author={childItem.author}
-            community={childItem.community}
-            createdAt={childItem.createdAt}
-            comments={childItem.children}
-            upvotes={childItem.upvotes}
-            downvotes={childItem.downvotes}
-            isComment
+                        key={childItem._id}
+                        id={childItem._id}
+                        currentUserId={user?.id}
+                        parentId={childItem.parentId}
+                        content={childItem.text}
+                        author={childItem.author}
+                        community={childItem.community}
+                        createdAt={childItem.createdAt}
+                        comments={childItem.children}
+                        downvotes={childItem.downvotes}
+                        isComment
                 />
                 ))
             }

@@ -10,6 +10,7 @@ const userSchema = new mongoose.Schema({
     onboarded: { type: Boolean, default: false },
     communities : [{ type: mongoose.Schema.Types.ObjectId, ref: 'Community' }],
     createdAt: { type: Date, default: Date.now },
+    taggedIn : [{ type: mongoose.Schema.Types.ObjectId, ref: 'Thread' }],
   });
 
 const User = mongoose.models.User || mongoose.model('User', userSchema);

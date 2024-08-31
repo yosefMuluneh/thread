@@ -53,7 +53,7 @@ const page = async ({ params } : { params :{ id : string}}) => {
                 
                 <TabsContent value='threads' className='w-full text-light-1'>
                     <ThreadsTab
-                    currentUserId={user.id}
+                    currentUserId={user.id.toString()}
                     accountId={communityDetail?.id}
                     accountType="Community" />
                 </TabsContent>

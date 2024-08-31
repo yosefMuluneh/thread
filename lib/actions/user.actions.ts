@@ -8,6 +8,7 @@ import Thread from "../models/thread.model";
 import User from "../models/user.model";
 
 import { connectToDB } from "../mongoose";
+import path from "path";
 
 export async function fetchUser(userId: string) {
   try {
@@ -77,6 +78,10 @@ export async function fetchUserThreads(userId: string) {
           select: "name id image _id", // Select the "name" and "_id" fields from the "Community" model
         },
         {
+          path: "author",
+          model: User,
+        },
+        {
           path: "children",
           model: Thread,
           populate: {
@@ -91,6 +96,42 @@ export async function fetchUserThreads(userId: string) {
   } catch (error) {
     console.error("Error fetching user threads:", error);
     throw error;
+  }
+}
+
+//fetch tagged in threads
+export async function fetchTaggedInThreads(taggedIn: string[]) {
+  try {
+    // Ensure that taggedIn contains thread IDs
+    if (!taggedIn || taggedIn.length === 0) {
+      return []; // Return an empty array if there are no tagged threads
+    }
+
+
+    const postsQuery = Thread.find({ _id: { $in: taggedIn } })
+    .sort({ createdAt: "desc" })
+    .populate({
+      path: "author",
+      model: User,
+    })
+    .populate({
+      path: "community",
+      model: Community,
+    })
+    .populate({
+      path: "children", // Populate the children field
+      populate: {
+        path: "author", // Populate the author field within children
+        model: User,
+        select: "_id name parentId image", // Select only _id and username fields of the author
+      },
+    });
+  const threads = await postsQuery.exec();
+
+
+    return threads; // Return the fetched threads
+  } catch (error: any) {
+    throw new Error(`Failed to fetch tagged threads: ${error.message}`);
   }
 }
 
@@ -174,8 +215,6 @@ export async function getActivities(userId: string) {
       model: User,
       select: "name image _id",
     });
-
-    console.log("Replies: ", replies);
 
     return replies;
   } catch (error) {

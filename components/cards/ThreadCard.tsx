@@ -1,35 +1,40 @@
+
 import { formatDateString } from '@/lib/utils'
 import Image from 'next/image'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import React from 'react'
 
 
 interface Props{
     id : string,
     currentUserId: string | undefined,
-parentId : string | null,
-content: string,
-author:{
-    name: string,
-    image: string,
-    id: string
-},
-community: {
-    id:string,
-    name: string,
-    image: string
-} | null,
-createdAt : string,
-comments:{
+    parentId : string | null,
+    content: string,
     author:{
+        name: string,
+        image: string,
+        id: string
+    },
+    community: {
+        id:string,
+        name: string,
         image: string
-    }
-}[],
-upvotes? : number,
-downvotes?: number,
-isComment?: boolean
+    } | null,
+    createdAt : string,
+    comments:{
+        author:{
+            image: string
+        }
+    }[],
+    upvotes ?: number | 0,
+    downvotes?: number,
+    isComment?: boolean
 }
 
+const handleLike = (threadId: string) => {
+
+}
 
 const ThreadCard = ({
     id,
@@ -44,9 +49,10 @@ upvotes,
 downvotes,
 isComment
 }: Props) => {
+    
   return (
     <article className={`flex w-full flex-col rounded-xl 
-    ${ isComment ? 'px-0 xs:px-7' : 'bg-dark-2 p-7'}`}>
+    ${ isComment ? 'px-0 xs:px-7' : 'bg-dark-2 p-7'}`} >
         <div className='flex items-start justify-between'>
             <div className='flex w-full flex-1 flex-row gap-4'>
                 <div className='flex flex-col items-center'>
@@ -72,6 +78,7 @@ isComment
                     </p>
                     <div className={`${ isComment && 'mb-10'} mt-5 flex flex-col gap-3`}>
                         <div className='flex gap-3.5'>
+                                
                             <Image
                             src='/assets/heart-gray.svg'
                             alt='heart'
@@ -85,7 +92,10 @@ isComment
                                     </p>
                                 )
                             }
+                            
+                            <div className='flex items-center gap-1'>
                             <Link href={`/thread/${id}`}>
+                                
                             <Image
                             src='/assets/reply.svg'
                             alt='reply'
@@ -93,6 +103,14 @@ isComment
                             height={24}
                             className='cursor-pointer object-contain'/>
                             </Link>
+                            {
+                                comments && comments.length > 0 && (
+                                    <p className='text-subtle-medium text-gray-1'>
+                                        {comments.length}
+                                    </p>
+                                )
+                            }
+                            </div>
                             
                             <Image
                             src='/assets/repost.svg'

@@ -7,6 +7,7 @@ import { connectToDB } from "../mongoose";
 import User from "../models/user.model";
 import Thread from "../models/thread.model";
 import Community from "../models/community.model";
+import { FilterQuery, SortOrder } from "mongoose";
 
 export async function fetchThreads(pageNumber = 1, pageSize = 20) {
   connectToDB();
@@ -55,10 +56,12 @@ interface Params {
   author: string,
   communityId: string | null,
   path: string,
+  taggedUsers?: string[],
+  topics?: string[]
 }
 
 
-export async function createThread({ text, author, communityId, path }: Params
+export async function createThread({ text, author, communityId, path, taggedUsers = [], topics=[] }: Params
 ) {
   try {
     connectToDB();
@@ -69,6 +72,8 @@ export async function createThread({ text, author, communityId, path }: Params
     );
 
 
+
+
     const createdThread = await Thread.create({
         text,
         author,
@@ -76,8 +81,21 @@ export async function createThread({ text, author, communityId, path }: Params
         downvotes: 0,
         comments: [],
         createdAt: new Date(),
+        topics,
         community: communityIdObject, // Assign communityId if provided, or leave it null for personal account
     });
+
+
+    //handle tagged users
+    if (taggedUsers.length > 0) {
+      // Update User model for tagged users
+      await User.updateMany(
+        { username: { $in: taggedUsers } },
+        {
+          $push: { taggedIn: createdThread._id },
+        }
+      );
+    }
 
 
     // Update User model
@@ -250,174 +268,66 @@ export async function addComment(
 }
 
 
+export async function fetchThreadsByTopic({
+  searchString = "",
+  pageNumber = 1,
+  pageSize = 20,
+  sortBy = "desc",
+}: {
+  searchString?: string;
+  pageNumber?: number;
+  pageSize?: number;
+  sortBy?: SortOrder;
+}) {
+  try {
+    connectToDB();
+
+    // Calculate the number of communities to skip based on the page number and page size.
+    const skipAmount = (pageNumber - 1) * pageSize;
+
+    // Create a case-insensitive regular expression for the provided search string.
+    const regex = new RegExp(searchString, "i");
+
+    // Create an initial query object to filter communities.
+    const query: FilterQuery<typeof Thread> = {};
+
+    // If the search string is not empty, add the $or operator to match either username or name fields.
+    if (searchString.trim() !== "") {
+      query.$or = [
+        { username: { $regex: regex } },
+        { name: { $regex: regex } },
+      ];
+    }
+
+    // Define the sort options for the fetched communities based on createdAt field and provided sort order.
+    const sortOptions = { createdAt: sortBy };
+
+    // Create a query to fetch the communities based on the search and sort criteria.
+    const threadsQuery = Thread.find(query)
+      .sort(sortOptions)
+      .skip(skipAmount)
+      .limit(pageSize)
+      .populate({
+        path: 'author',
+        model: User
+
+      })
+
+    // Count the total number of communities that match the search criteria (without pagination).
+    const totalThreadsCount = await Thread.countDocuments(query);
+
+    const threads = await threadsQuery.exec();
 
 
+    //filter those who have topics.length > 0
+    const filteredThreads = threads.filter((thread) => thread?.topics?.length > 0);
 
+    // Check if there are more communities beyond the current page.
+    const isNext = totalThreadsCount > skipAmount + filteredThreads.length;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-// 'use server'
-// import { connectToDB } from "../mongoose";
-// import Thread from "../models/thread.model";
-// import { revalidatePath } from "next/cache";
-// import User from "../models/user.model";
-
-// interface Params {
-//     author: string,
-//     text: string,
-//     communityId: string | null,
-//     path: string
-// }
-
-// export async function createThread(
-//     {
-//         author,
-//         text,
-//         communityId,
-//         path
-// } : Params
-//     ):Promise<void>{
-    
-
-//     try{
-//         connectToDB()
-//         const createdThread = await Thread.create({
-//             text,
-//             community: communityId,
-//             author,
-//             upvotes: 0,
-//             downvotes: 0,
-//             comments: [],
-//             createdAt: new Date()
-//         });
-
-//         //update user model
-//         await User.findByIdAndUpdate(author, {
-//             $push: {threads: createdThread._id
-//             }
-//         })
-
-//         revalidatePath(path)
-//     }catch(err: any){
-//         throw new Error(`failed to create thread: ${err.message}`)
-//     }
-// }
-
-// export async function fetchThreads(pagenumber = 1, pagesize = 20) {
-//     try{
-//         connectToDB()
-//         const skipAmount = (pagenumber - 1) * pagesize
-
-//         //threads with no parents
-//         const threadsQuery = Thread.find({
-//             parentId: { $in: [null, undefined]}
-//         })
-//         .sort({createdAt: 'desc'})
-//         .skip(skipAmount)
-//         .limit(pagesize)
-//         .populate({ path: 'author', model: User })
-//         .populate({ 
-//             path : 'children',
-//             populate:{
-//                 path: 'author', 
-//                 model: User, 
-//                 select:"_id name parentId image"}
-//         })
-
-//         const totalThreadsCount = await Thread.countDocuments({
-//             parentId :{ $in: [null,undefined]}
-//         })
-
-//         const threads = await threadsQuery.exec()
-
-//         const isNext = totalThreadsCount > skipAmount + threads.length
-
-//         return { threads, isNext}
-//     }catch(error:any){
-//         throw new Error(`Failed to fetch threads ${error.message}`)
-//     }
-// }
-
-// export async function fetchThreadById(id: string){
-//     try{
-//         connectToDB()
-//         //TODO: populate community
-//         const thread = await Thread.findById(id)
-//         .populate({
-//             path: 'author',
-//             model: User,
-//             select: "_id id image name"
-//         })
-//         .populate({
-//             path: "children",
-//             populate:[
-//                 {
-//                     path:"author",
-//                     model: User,
-//                     select: "_id id name parentId image"
-//                 },
-//                 {
-//                     path:"children",
-//                     model: Thread,
-//                     populate:{
-//                         path:"author",
-//                         model: User,
-//                         select: "_id id name parentid image"
-//                     }
-//                 }
-//             ]
-//         }).exec()
-//         // .populate({
-//         //     path: 'community',
-//         //     model: community,
-
-//         // })
-
-//         return thread
-
-//     }catch(err: any){
-//         throw new Error(`Failed to fetch the thread ${err.message}`)
-//     }
-
-// }
-
-// export async function addComment(
-//     threadId:string,
-//     commentText:string,
-//     userId:string,
-//     path:string
-//     ){
-//         try{
-//             connectToDB()
-//             const originalThread = await Thread.findById(threadId)
-
-//             if(!originalThread) throw new Error("Thread not found")
-
-//             //new thread of the comment
-
-//             const newThread = new Thread({
-//                 author:userId,
-//                 text:commentText,
-//                 parentId:threadId,
-//             })
-
-//             const savedcommentThread = await newThread.save()
-
-//             originalThread.children.push(savedcommentThread._id)
-//             await originalThread.save()
-//             revalidatePath(path)
-//         }catch(error:any){
-//             throw new Error(`Failed to add comment ${error.message}`)
-//         }
-//     }
+    return { filteredThreads, isNext };
+  } catch (error) {
+    console.error("Error fetching communities:", error);
+    throw error;
+  }
+}

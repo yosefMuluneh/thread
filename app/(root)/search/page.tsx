@@ -7,6 +7,9 @@ import { profileTabs } from '@/constants'
 import Image from 'next/image'
 import ThreadsTab from '@/components/shared/ThreadsTab'
 import UserCard from '@/components/cards/UserCard'
+import SearchPage from '@/components/forms/SearchPage'
+import { fetchCommunities } from '@/lib/actions/community.actions'
+import { fetchThreadsByTopic } from '@/lib/actions/thread.actions'
 
 const page = async ({ params } : { params: { id : string }}) => {
     const user = await currentUser()
@@ -30,31 +33,15 @@ const page = async ({ params } : { params: { id : string }}) => {
         pageNumber: 1,
         pageSize: 25
     })
+
+    const communities = await fetchCommunities({ searchString: '', pageNumber: 1, pageSize: 5 })
+    const threadsBytopic = await fetchThreadsByTopic({ searchString: '', pageNumber: 1, pageSize: 5 })
+
   return (
     <section>
-        <h1 className="head-text mb-10">Search</h1>
-
-        <div className='mt-14 flex flex-col gap-9'>
-            {
-                result.users.length === 0 ? ( 
-                    <p className='no-result'>No users</p>
-                  ) : (
-                    <>
-                    {
-                        result.users.map((person: any) => (
-                            <UserCard
-                            key={person.id}
-                            id={person.id}
-                            name={person.name}
-                            username={person.username}
-                            imgUrl={person.image}
-                            personType="User" />
-                        )
-                    ,)}
-                    </>
-                  )
-            }
-        </div>
+            
+        <SearchPage userId={user.id} users={JSON.parse(JSON.stringify(result.users))} communities={JSON.parse(JSON.stringify(communities.communities))} topics={JSON.parse(JSON.stringify(threadsBytopic.filteredThreads))}/>
+              
     </section>
   )
 }

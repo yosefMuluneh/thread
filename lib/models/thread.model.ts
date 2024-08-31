@@ -29,7 +29,11 @@ const threadSchema = new mongoose.Schema({
             type: mongoose.Schema.Types.ObjectId,
             ref: "Thread"
         }
-    ]
+    ],
+    topics: [{
+        type: String
+    }
+    ],
   });
 
 const Thread = mongoose.models.Thread || mongoose.model('Thread', threadSchema);

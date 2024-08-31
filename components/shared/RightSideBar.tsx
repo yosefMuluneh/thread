@@ -12,8 +12,8 @@ const RightSideBar = async () => {
   const communities = await fetchCommunities({ searchString: '', pageNumber: 1, pageSize: 5 })
   return (
     <section className='custom-scrollbar rightsidebar'>
-      <div className='flex flex-1 flex-col justify start'>
-        <h3 className='text-heading4-medium text-light-1'>Suggested Communities</h3>
+      <div className='flex flex-col'>
+        <h3 className='text-heading4-medium text-light-1 mb-5'>Suggested Communities</h3>
           {
             communities.communities.map((community) => (
               <div key={community.id} className='mb-5'>
@@ -22,7 +22,8 @@ const RightSideBar = async () => {
             ))
           }
       </div>
-      <div className='flex flex-1 flex-col justify start'>
+      <div className='flex border-y border-y-dark-4'/>
+      <div className='flex flex-col'>
         <h3 className='text-heading4-medium text-light-1 mb-5'>Suggested Users</h3>
         <div  className='flex flex-col gap-4' >
 

@@ -33,17 +33,24 @@ const PostThread =  ({ userId }:{ userId : string}) => {
           accountId: userId
                 }
     })
-    console.log('organization=>>', organization?.id)
-    const onSubmit = async (value: z.infer<typeof ThreadValidation>)=>{
+    const onSubmit = async (value: z.infer<typeof ThreadValidation>) => {
+      // Extract tagged users (words starting with '@') and remove the '@'
+      const taggedUsers = value.thread.match(/@(\w+)/g)?.map((tag) => tag.substring(1)) || [];
+    
+      // Extract topics (words starting with '#') and remove the '#'
+      const topics = value.thread.match(/#(\w+)/g)?.map((tag) => tag.substring(1)) || [];
+    
       await createThread({
         author: userId,
         communityId: organization ? organization.id : null,
         path: pathname,
-        text: value.thread
-      })
-
-      router.push('/')
-    }
+        text: value.thread,
+        taggedUsers,  // Pass the extracted tagged users
+        topics        // Pass the extracted topics
+      });
+    
+      router.push('/');
+    };
 
   return (
     <Form {...form}>
