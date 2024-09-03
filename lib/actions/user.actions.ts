@@ -14,7 +14,17 @@ export async function fetchUser(userId: string) {
   try {
     connectToDB();
 
-    return await User.findOne({ id: userId }).populate({
+    const regex = new RegExp(userId, "i");
+
+    // Create an initial query object to filter communities.
+    const query: FilterQuery<typeof User> = {};
+    query.$or = [
+      { username: { $regex: regex } },
+      { id: { $regex: regex } },
+    ];
+
+
+    return await User.findOne(query).populate({
       path: "communities",
       model: Community,
     });
@@ -68,7 +78,7 @@ export async function fetchUserThreads(userId: string) {
     connectToDB();
 
     // Find all threads authored by the user with the given userId
-    const threads = await User.findOne({ id: userId }).populate({
+    const threads = await User.findOne({ id: userId }).sort({createdAt : 'desc'}).populate({
       path: "threads",
       model: Thread,
       populate: [
@@ -214,6 +224,9 @@ export async function getActivities(userId: string) {
       path: "author",
       model: User,
       select: "name image _id",
+    }).populate({
+      path: 'parentId',
+      model: Thread,
     });
 
     return replies;

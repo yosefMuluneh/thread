@@ -1,12 +1,6 @@
 import { currentUser } from '@clerk/nextjs'
 import { redirect } from 'next/navigation'
 import { fetchUser, fetchUsers } from '@/lib/actions/user.actions'
-import ProfileHeader from '@/components/shared/ProfileHeader'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { profileTabs } from '@/constants'
-import Image from 'next/image'
-import ThreadsTab from '@/components/shared/ThreadsTab'
-import UserCard from '@/components/cards/UserCard'
 import SearchPage from '@/components/forms/SearchPage'
 import { fetchCommunities } from '@/lib/actions/community.actions'
 import { fetchThreadsByTopic } from '@/lib/actions/thread.actions'
@@ -41,7 +35,7 @@ const page = async ({ params } : { params: { id : string }}) => {
     <section>
             
         <SearchPage userId={user.id} users={JSON.parse(JSON.stringify(result.users))} communities={JSON.parse(JSON.stringify(communities.communities))} topics={JSON.parse(JSON.stringify(threadsBytopic.filteredThreads))}/>
-              
+             
     </section>
   )
 }

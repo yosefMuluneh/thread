@@ -159,3 +159,8 @@
 .comment-form_btn {
   @apply rounded-3xl bg-primary-500 px-8 py-2 !text-small-regular text-light-1 max-xs:w-full !important;
 }
+
+/* search form */
+.search-form {
+  @apply flex items-center gap-4 border-y border-y-dark-4 py-2 max-xs:flex-col !important;
+}

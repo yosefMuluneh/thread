@@ -15,10 +15,7 @@ import * as z from 'zod'
 import { Input } from '../ui/input'
 import { usePathname, useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { addComment, createThread } from '@/lib/actions/thread.actions'
-import Image from "next/image";
 import { useState } from "react";
-import { set } from "mongoose";
 import UserCard from "../cards/UserCard";
 import ThreadCard from "../cards/ThreadCard";
 import CommunityCard from "../cards/CommunityCard";
@@ -73,9 +70,9 @@ const SearchPage = ({ users, communities, topics, userId} : Props) => {
     <Form {...form}>
     <form onSubmit={form.handleSubmit(onSubmit)} onChange={()=>fetchSearchEntity(form.getValues().entity)}
     className="flex flex-col justify-center pb-3 gap-3 sticky top-[85px] z-50 bg-black">
-        <h1 className="head-text">Search</h1>
+        <h1 className="text-heading2-bold text-light-1">Search</h1>
 
-        <div className="comment-form">
+        <div className="search-form mt-0">
 
       <FormField
         control={form.control}
@@ -145,6 +142,7 @@ const SearchPage = ({ users, communities, topics, userId} : Props) => {
               />
         ))
     }
+    
     </section>
   )
 }

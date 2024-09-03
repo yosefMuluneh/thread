@@ -32,9 +32,43 @@ interface Props{
     isComment?: boolean
 }
 
-const handleLike = (threadId: string) => {
+const Content = ({content}: {content: string}) => {
+     // Regular expression to detect @username and #topic
+  const regex = /(@\w+|#\w+)/g;
 
+  // Split the content into an array of text and matches
+  const parts = content.split(regex);
+
+
+  return (
+    <p className="mt-2 text-small-regular text-light-2">
+      {parts.map((part, index) => {
+        // Check if the part matches @username or #topic
+        if (part.match(/@\w+/)) {
+          return (
+            <Link key={index} href={`/profile/${part.slice(1)}`} className="text-blue">
+                {part}
+            </Link>
+            
+          );
+        }
+
+        if (part.match(/#\w+/)) {
+          return (
+            <Link key={index} className='text-blue' href={`/topic/${part.slice(1)}`}>
+                {part}
+            </Link>
+          );
+        }
+
+        // Return regular text
+        return <span  key={index}>{part}</span>;
+      })}
+    </p>
+  );
 }
+
+
 
 const ThreadCard = ({
     id,
@@ -51,6 +85,8 @@ isComment
 }: Props) => {
     
   return (
+    <Link href={`/thread/${id}`}>
+    
     <article className={`flex w-full flex-col rounded-xl 
     ${ isComment ? 'px-0 xs:px-7' : 'bg-dark-2 p-7'}`} >
         <div className='flex items-start justify-between'>
@@ -73,9 +109,8 @@ isComment
                             {author.name}
                         </h4>
                     </Link>
-                    <p className='mt-2 text-small-regular text-light-2'>
-                        {content}
-                    </p>
+                        <Content content={content} />
+                    
                     <div className={`${ isComment && 'mb-10'} mt-5 flex flex-col gap-3`}>
                         <div className='flex gap-3.5'>
                                 
@@ -125,15 +160,7 @@ isComment
                             height={24}
                             className='cursor-pointer object-contain'/>
                         </div>
-                        {
-                            isComment && comments.length >0 &&(
-                                <Link href={`/thread/${id}`}>
-                                    <p className='mt-1 text-subtle-medium text-gray-1'>
-                                        {comments.length}
-                                    </p>
-                                </Link>
-                            )
-                        }
+                        
 
                     </div>
                         
@@ -168,6 +195,7 @@ isComment
             }
         
     </article>
+    </Link>
   )
 }
 

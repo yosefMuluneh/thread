@@ -25,7 +25,7 @@ const ThreadsTab = async ({
   return (
     <section className="mt-9 flex flex-col gap-10">
         {
-            threads.threads.map((thread:any)=>(
+            threads.threads.reverse().map((thread:any)=>(
                 <ThreadCard
                 key={thread._id}
                 id={thread._id}

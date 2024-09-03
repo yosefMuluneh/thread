@@ -23,7 +23,8 @@ const page = async ({ params } : { params :{ id : string}}) => {
             name={communityDetail.name}
             username={communityDetail.username}
             imgUrl={communityDetail.image}
-            bio={communityDetail.bio} />
+            bio={communityDetail.bio}
+            type='Community' />
 
         <div className='mt-9'>
             <Tabs defaultValue='threads' className='w-full'>

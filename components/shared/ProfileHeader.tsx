@@ -9,6 +9,8 @@ interface Props {
     imgUrl: string
     bio: string
     type? : 'User' | 'Community'
+    joined?: false | true
+    following?: false | true
 }
 
 const ProfileHeader = ({
@@ -18,6 +20,9 @@ const ProfileHeader = ({
     username,
     imgUrl,
     bio,
+    type = 'User',
+    joined = false,
+    following = false
 }: Props) => {
   return (
     <div className="flex w-full flex-col justify-start">
@@ -39,7 +44,11 @@ const ProfileHeader = ({
                 {
         accountId !== authUserId &&
             <Button type='submit' className='bg-primary-500 '> 
-        Follow
+                {
+                    type === 'User' ?
+                    following ? 'Unfollow' : 'Follow' :
+                    joined ? 'Leave' : 'Join'
+                }
       </Button>
       }
                 </div>

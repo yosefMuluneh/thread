@@ -281,12 +281,10 @@ export async function fetchThreadsByTopic({
 }) {
   try {
     connectToDB();
-
     // Calculate the number of communities to skip based on the page number and page size.
     const skipAmount = (pageNumber - 1) * pageSize;
 
-    // Create a case-insensitive regular expression for the provided search string.
-    const regex = new RegExp(searchString, "i");
+    
 
     // Create an initial query object to filter communities.
     const query: FilterQuery<typeof Thread> = {};
@@ -294,8 +292,8 @@ export async function fetchThreadsByTopic({
     // If the search string is not empty, add the $or operator to match either username or name fields.
     if (searchString.trim() !== "") {
       query.$or = [
-        { username: { $regex: regex } },
-        { name: { $regex: regex } },
+        { topics: { $regex: searchString } },
+        { text: { $regex: `#${searchString}` } },
       ];
     }
 
@@ -320,7 +318,7 @@ export async function fetchThreadsByTopic({
 
 
     //filter those who have topics.length > 0
-    const filteredThreads = threads.filter((thread) => thread?.topics?.length > 0);
+    const filteredThreads =searchString.trim() !== "" ? threads : threads.filter((thread) => thread?.topics?.length > 0);
 
     // Check if there are more communities beyond the current page.
     const isNext = totalThreadsCount > skipAmount + filteredThreads.length;

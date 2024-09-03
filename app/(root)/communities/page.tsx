@@ -27,7 +27,7 @@ const page = async ({ params } : { params: { id : string }}) => {
     })
   return (
     <section>
-        <h1 className="head-text mb-10">Search</h1>
+        <h1 className="head-text mb-7">Communities</h1>
 
         <div className='mt-14 flex flex-col gap-9'>
             {

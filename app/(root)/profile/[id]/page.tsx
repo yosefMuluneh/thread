@@ -10,7 +10,7 @@ import { profileTabs } from '@/constants'
 import Comment from '@/components/forms/Comment'
 import ThreadCard from '@/components/cards/ThreadCard'
 
-const page = async ({ params } : { params :{ id : string}}) => {
+const page = async ({ params } : { params : { id : string }}) => {
     const user = await currentUser()
 
     if (!user) {
@@ -24,10 +24,14 @@ const page = async ({ params } : { params :{ id : string}}) => {
     
     }
 
-    const threads = await fetchUserThreads(params.id)
+
+
+    const threads = await fetchUserThreads(userInfo.id)
 
     //check if each thread inside threads has children
     const threadsWithReplies = threads.threads.filter((thread:any)=>thread.children.length > 0)
+    //inverse the order of threadsWithReplies
+    threadsWithReplies.reverse()
 
     const taggedIn = await fetchTaggedInThreads(userInfo.taggedIn)
 
@@ -70,14 +74,32 @@ const page = async ({ params } : { params :{ id : string}}) => {
                     
                 <TabsContent  value='threads' className='w-full text-light-1'>
                 {
-                threads.threads.length === 0 ? 
+                threads.threads.reverse().length === 0 ? 
                      <div className='flex mt-10 justify-center w-full'>
                          <p className='font-semibold'> No threads yet</p> 
                      </div>  :
-                    <ThreadsTab
-                    currentUserId={user.id.toString()}
-                    accountId={userInfo?.id}
-                    accountType="User" />}
+                     <div className='mt-9 flex flex-col gap-5'>
+                        {
+
+                         threads.threads.map((thread:any)=>(
+                                 <ThreadCard
+                                 key={thread._id}
+                                 id={thread._id}
+                                 currentUserId={user.id}
+                                 parentId={thread.parentId}
+                                 content={thread.text}
+                                 author={ thread.author}
+                                 community={thread.community}
+                                 createdAt={thread.createdAt}
+                                 comments={thread.children}
+                                 downvotes={thread.downvotes}
+                                 />
+                            
+                         ))
+                        }
+                         
+                     </div>
+                    }
                 </TabsContent>
 
                 <TabsContent value='replies' className='w-full text-light-1'>
@@ -90,12 +112,7 @@ const page = async ({ params } : { params :{ id : string}}) => {
                       <p className='font-semibold'> No replies yet</p> 
                   </div>  : 
 
-                       threads.threads.map((thread:any)=>(
-                            
-                            
-                           
-
-                            
+                       threadsWithReplies.map((thread:any)=>(
                             <div key={thread.id} >
                                 
                                 <section className='relative'>
