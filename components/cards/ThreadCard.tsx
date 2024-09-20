@@ -1,10 +1,7 @@
-
 import { formatDateString } from '@/lib/utils'
 import Image from 'next/image'
 import Link from 'next/link'
-import { redirect } from 'next/navigation'
 import React from 'react'
-
 
 interface Props{
     id : string,
@@ -14,7 +11,8 @@ interface Props{
     author:{
         name: string,
         image: string,
-        id: string
+        id: string,
+        username: string
     },
     community: {
         id:string,
@@ -29,7 +27,7 @@ interface Props{
     }[],
     upvotes ?: number | 0,
     downvotes?: number,
-    isComment?: boolean
+    isComment?: boolean,
 }
 
 const Content = ({content}: {content: string}) => {
@@ -83,6 +81,10 @@ upvotes,
 downvotes,
 isComment
 }: Props) => {
+
+    const handleLike = () => {
+        console.log('upvote')
+    }
     
   return (
     <Link href={`/thread/${id}`}>
@@ -104,69 +106,89 @@ isComment
                         <div className='thread-card_bar'/>
                 </div>
                 <div className='flex w-full flex-col'>
-                    <Link href={`/profile/${author.id}`} className='w-fit'>
+                    <Link href={`/profile/${author.id}`} className='w-fit flex gap-2'>
                         <h4 className='cursor-pointer text-base-semibold text-light-1'>
                             {author.name}
+                        </h4>
+                        <h4 className='cursor-pointer  text-gray-1'>
+                            @{author.username}
                         </h4>
                     </Link>
                         <Content content={content} />
                     
-                    <div className={`${ isComment && 'mb-10'} mt-5 flex flex-col gap-3`}>
-                        <div className='flex gap-3.5'>
-                                
-                            <Image
-                            src='/assets/heart-gray.svg'
-                            alt='heart'
-                            width={24}
-                            height={24}
-                            className='cursor-pointer object-contain'/>
-                            {
-                                upvotes && upvotes > 0 && (
-                                    <p className='text-subtle-medium text-gray-1'>
-                                        {upvotes}
-                                    </p>
-                                )
-                            }
-                            
-                            <div className='flex items-center gap-1'>
-                            <Link href={`/thread/${id}`}>
-                                
-                            <Image
-                            src='/assets/reply.svg'
-                            alt='reply'
-                            width={24}
-                            height={24}
-                            className='cursor-pointer object-contain'/>
-                            </Link>
-                            {
-                                comments && comments.length > 0 && (
-                                    <p className='text-subtle-medium text-gray-1'>
-                                        {comments.length}
-                                    </p>
-                                )
-                            }
-                            </div>
-                            
-                            <Image
-                            src='/assets/repost.svg'
-                            alt='repost'
-                            width={24}
-                            height={24}
-                            className='cursor-pointer object-contain'/>
-                            <Image
-                            src='/assets/share.svg'
-                            alt='share'
-                            width={24}
-                            height={24}
-                            className='cursor-pointer object-contain'/>
-                        </div>
-                        
-
-                    </div>
+                    
+                        <div className={`${ isComment && 'mb-10'} mt-5 flex flex-col gap-3`}>
+        <div className='flex gap-3.5'>
+                                    
+            <Image
+            src='/assets/heart-gray.svg'
+            alt='heart'
+            width={24}
+            height={24}
+            className='cursor-pointer object-contain'/>
+            {
+                upvotes && upvotes > 0 && (
+                    <p className='text-subtle-medium text-gray-1'>
+                        {upvotes}
+                    </p>
+                )
+            }
+            
+            <div className='flex items-center gap-1'>
+            <Link href={`/thread/${id}`}>
+                
+            <Image
+            src='/assets/reply.svg'
+            alt='reply'
+            width={24}
+            height={24}
+            className='cursor-pointer object-contain'/>
+            </Link>
+            {
+                comments && comments.length > 0 && (
+                    <p className='text-subtle-medium text-gray-1'>
+                        {comments.length}
+                    </p>
+                )
+            }
+            </div>
+            
+            <Image
+            src='/assets/repost.svg'
+            alt='repost'
+            width={24}
+            height={24}
+            className='cursor-pointer object-contain'/>
+            <Image
+            src='/assets/share.svg'
+            alt='share'
+            width={24}
+            height={24}
+            className='cursor-pointer object-contain'/>
+        </div>
+    </div>
                         
                 </div>
             </div>
             {/* {Delete Thread} */}
+            {
+                currentUserId === author.id && (
+                    <div className='flex gap-3'>
+
+<Image
+                            src='/assets/more.svg'
+                            alt='delete'
+                            width={20}
+                            height={20}
+                            className='cursor-pointer object-contain'/>
+
+                        
+
+                        
+
+                    </div>
+                )
+            }
             {/* { Show comment logos } */}
 
         </div>{

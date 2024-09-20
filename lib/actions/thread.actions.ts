@@ -33,7 +33,7 @@ export async function fetchThreads(pageNumber = 1, pageSize = 20) {
       populate: {
         path: "author", // Populate the author field within children
         model: User,
-        select: "_id name parentId image", // Select only _id and username fields of the author
+        select: "_id name parentId image username", // Select only _id and username fields of the author
       },
     });
 

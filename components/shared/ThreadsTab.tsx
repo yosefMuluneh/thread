@@ -33,8 +33,8 @@ const ThreadsTab = async ({
                 parentId={thread.parentId}
                 content={thread.text}
                 author={ accountType === "User" ? 
-            {name:threads.name, image:threads.image, id:threads.id} :
-            {name:thread.author.name, image:thread.author.image, id:thread.author.id}
+            {name:threads.name, image:threads.image, id:threads.id, username:threads.username} :
+            {name:threads.name, image:threads.image, id:threads.id, username:threads.username}
         }
                 community={thread.community}
                 createdAt={thread.createdAt}

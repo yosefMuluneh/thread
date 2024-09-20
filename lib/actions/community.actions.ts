@@ -7,6 +7,7 @@ import Thread from "../models/thread.model";
 import User from "../models/user.model";
 
 import { connectToDB } from "../mongoose";
+import path from "path";
 
 export async function createCommunity(
   id: string,
@@ -92,6 +93,10 @@ export async function fetchCommunityPosts(id: string) {
             select: "image _id", // Select the "name" and "_id" fields from the "User" model
           },
         },
+        {
+          path  : "community",
+          model : Community,
+        }
       ],
     });
 
@@ -155,6 +160,48 @@ export async function fetchCommunities({
     return { communities, isNext };
   } catch (error) {
     console.error("Error fetching communities:", error);
+    throw error;
+  }
+}
+
+export async function sendInvitationToUser(
+  communityId: string,
+  userId: string
+) {
+  try {
+    connectToDB();
+
+    // Find the community by its unique id
+    const community = await Community.findOne({ id: communityId });
+
+    if (!community) {
+      throw new Error("Community not found");
+    }
+
+    // Find the user by their unique id
+    const user = await User.findOne({ id: userId });
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Check if the user is already a member of the community
+    if (community.members.includes(user._id)) {
+      throw new Error("User is already a member of the community");
+    }
+
+    // Add the user's _id to the invitations array in the community
+    community.invitations.push(user._id);
+    await community.save();
+
+    //send invitation to user
+    user.invitedTo.push(community._id);
+    await user.save();
+
+    return community;
+  } catch (error) {
+    // Handle any errors
+    console.error("Error sending invitation to community:", error);
     throw error;
   }
 }
