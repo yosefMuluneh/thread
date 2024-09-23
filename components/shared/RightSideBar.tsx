@@ -4,6 +4,9 @@ import { fetchUsers } from '@/lib/actions/user.actions'
 import { currentUser } from '@clerk/nextjs'
 import { fetchCommunities } from '@/lib/actions/community.actions'
 import CommunityCard from '../cards/CommunityCard'
+import SuggestedCommunities from './SuggestedCommunities'
+import SuggestedUsers from './SuggestedUsers'
+import { Separator } from '../ui/separator'
 
 const RightSideBar = async () => {
   const user = await currentUser()
@@ -13,31 +16,14 @@ const RightSideBar = async () => {
   return (
     <section className='custom-scrollbar rightsidebar'>
       <div className='flex flex-col'>
-        <h3 className='text-heading4-medium text-light-1 mb-5'>Suggested Communities</h3>
-          {
-            communities.communities.map((community) => (
-              <div key={community.id} className='mb-5'>
-                <CommunityCard id={community.id} name={community.name} username={community.username} imgUrl={community.image} bio={community.bio} members={community.members}/>
-              </div>
-            ))
-          }
+      <h3 className='text-heading4-medium text-light-1 mb-5'>Suggested Communities</h3>
+        <SuggestedCommunities communities={communities.communities}/>
+        
       </div>
-      <div className='flex border-y border-y-dark-4'/>
+      <Separator className='bg-gray-700' />
       <div className='flex flex-col'>
         <h3 className='text-heading4-medium text-light-1 mb-5'>Suggested Users</h3>
-        <div  className='flex flex-col gap-4' >
-
-        {
-          users.users.map((user) => (
-            <div key={user._id} className='rounded border-1 community-card p-3 '>
-              <UserCard  id={user.id} name={user.name} imgUrl={user.image} username={user.username} personType='User'/>
-            </div>
-            
-          ))
-
-        }
-        
-        </div>
+        <SuggestedUsers users={users.users}/>
       </div>
     </section>
   )

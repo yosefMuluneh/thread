@@ -34,6 +34,12 @@ const threadSchema = new mongoose.Schema({
         type: String
     }
     ],
+    repost: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Thread"
+        }
+    ]
   });
 
 const Thread = mongoose.models.Thread || mongoose.model('Thread', threadSchema);

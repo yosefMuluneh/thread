@@ -1,6 +1,6 @@
 "use server";
 
-import { FilterQuery, SortOrder } from "mongoose";
+import mongoose, { FilterQuery, SortOrder } from "mongoose";
 import { revalidatePath } from "next/cache";
 
 import Community from "../models/community.model";
@@ -232,6 +232,23 @@ export async function getActivities(userId: string) {
     return replies;
   } catch (error) {
     console.error("Error fetching replies: ", error);
+    throw error;
+  }
+}
+
+
+
+export async function editThread(threadId: string, text: string, path: string) {
+  try {
+    connectToDB();
+
+   
+
+    await Thread.updateOne({ _id: threadId  }, { text });
+    revalidatePath(path);
+  }
+  catch (error) {
+    console.error("Error editing thread: ", error);
     throw error;
   }
 }

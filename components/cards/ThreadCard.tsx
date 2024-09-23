@@ -1,7 +1,11 @@
+import { fetchThreadById } from '@/lib/actions/thread.actions'
 import { formatDateString } from '@/lib/utils'
+import { Inter } from 'next/font/google'
 import Image from 'next/image'
 import Link from 'next/link'
 import React from 'react'
+import InteractionCard from './InteractionCard'
+import MorePopup from './MorePopup'
 
 interface Props{
     id : string,
@@ -28,7 +32,10 @@ interface Props{
     upvotes ?: number | 0,
     downvotes?: number,
     isComment?: boolean,
+    repost?: string
 }
+
+
 
 const Content = ({content}: {content: string}) => {
      // Regular expression to detect @username and #topic
@@ -36,6 +43,8 @@ const Content = ({content}: {content: string}) => {
 
   // Split the content into an array of text and matches
   const parts = content.split(regex);
+
+  
 
 
   return (
@@ -68,7 +77,7 @@ const Content = ({content}: {content: string}) => {
 
 
 
-const ThreadCard = ({
+const ThreadCard = async({
     id,
 currentUserId,
 parentId,
@@ -79,15 +88,23 @@ createdAt,
 comments,
 upvotes,
 downvotes,
-isComment
+isComment,
+repost
 }: Props) => {
 
-    const handleLike = () => {
-        console.log('upvote')
-    }
+
+    // if it is repost fetch the thread using the repost id
+    let repostedThread = null
+
+        if (repost){
+            repostedThread = await fetchThreadById(repost)
+            {console.log('reposted thread fetched',repostedThread)}
+        }
+
+        
     
   return (
-    <Link href={`/thread/${id}`}>
+    
     
     <article className={`flex w-full flex-col rounded-xl 
     ${ isComment ? 'px-0 xs:px-7' : 'bg-dark-2 p-7'}`} >
@@ -115,81 +132,43 @@ isComment
                         </h4>
                     </Link>
                         <Content content={content} />
+                        {
+                          repostedThread &&   <ThreadCard 
+                            id={repostedThread._id.toString()}
+                            currentUserId={currentUserId}
+                            parentId={repostedThread.parentId}
+                            content={repostedThread.text}
+                            author={repostedThread.author}
+                            community={repostedThread.community}
+                            createdAt={repostedThread.createdAt}
+                            comments={repostedThread.children}
+                            downvotes={repostedThread.downvotes}
+                             />
+                        }
                     
                     
                         <div className={`${ isComment && 'mb-10'} mt-5 flex flex-col gap-3`}>
-        <div className='flex gap-3.5'>
-                                    
-            <Image
-            src='/assets/heart-gray.svg'
-            alt='heart'
-            width={24}
-            height={24}
-            className='cursor-pointer object-contain'/>
+        <InteractionCard thread={JSON.stringify(
             {
-                upvotes && upvotes > 0 && (
-                    <p className='text-subtle-medium text-gray-1'>
-                        {upvotes}
-                    </p>
-                )
-            }
-            
-            <div className='flex items-center gap-1'>
-            <Link href={`/thread/${id}`}>
+                upvotes,
+                comments,
+                id
                 
-            <Image
-            src='/assets/reply.svg'
-            alt='reply'
-            width={24}
-            height={24}
-            className='cursor-pointer object-contain'/>
-            </Link>
-            {
-                comments && comments.length > 0 && (
-                    <p className='text-subtle-medium text-gray-1'>
-                        {comments.length}
-                    </p>
-                )
             }
-            </div>
-            
-            <Image
-            src='/assets/repost.svg'
-            alt='repost'
-            width={24}
-            height={24}
-            className='cursor-pointer object-contain'/>
-            <Image
-            src='/assets/share.svg'
-            alt='share'
-            width={24}
-            height={24}
-            className='cursor-pointer object-contain'/>
-        </div>
+        )
+        } />
     </div>
                         
                 </div>
             </div>
-            {/* {Delete Thread} */}
             {
                 currentUserId === author.id && (
                     <div className='flex gap-3'>
-
-<Image
-                            src='/assets/more.svg'
-                            alt='delete'
-                            width={20}
-                            height={20}
-                            className='cursor-pointer object-contain'/>
-
+                        <MorePopup id={JSON.stringify(id)}/>
                         
-
-                        
-
                     </div>
                 )
             }
-            {/* { Show comment logos } */}
 
         </div>{
             !community && (
@@ -217,7 +196,7 @@ isComment
             }
         
     </article>
-    </Link>
+   
   )
 }
 

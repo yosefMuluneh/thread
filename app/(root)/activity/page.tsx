@@ -1,6 +1,6 @@
 import { currentUser } from '@clerk/nextjs'
 import { redirect } from 'next/navigation'
-import { fetchUser, fetchUsers, getActivities } from '@/lib/actions/user.actions'
+import { fetchUser, fetchUsers, fetchUserThreads, getActivities } from '@/lib/actions/user.actions'
 import ProfileHeader from '@/components/shared/ProfileHeader'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { profileTabs } from '@/constants'
@@ -25,17 +25,30 @@ const page = async ({ params } : { params: { id : string }}) => {
         }
     }
 
-    const activities = await getActivities(userInfo._id)
+
+    const threads = await fetchUserThreads(userInfo.id)
+
+    //check if each thread inside threads has children
+    const threadsWithReplies = threads.threads.filter((thread:any)=>thread.children.length > 0)
+    //inverse the order of threadsWithReplies
+    threadsWithReplies.reverse()
+    const theReplies = threadsWithReplies.map((thread:any)=>thread.children)
+    // make all the elements into one array
+  const replies = theReplies.flat()
+
+
+
+    {console.log(replies)}
 
   return (
     <section >
       <h1 className='head-text mb-10'> Activities</h1>
       <section className='mt-10 flex flex-col gap-5'>
         {
-          activities.length > 0 ? (
+          replies.length > 0 ? (
             <>
             {
-              activities.map((activity)=>(
+              replies.map((activity: any) => (
                 <Link key={activity._id} href={`/thread/${activity.parentId}`} >
                   <article className='activity-card'>
                     <Image 

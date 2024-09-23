@@ -5,7 +5,6 @@ import ThreadCard from "@/components/cards/ThreadCard";
 
 import { fetchThreads } from "@/lib/actions/thread.actions";
 import { fetchUser } from "@/lib/actions/user.actions";
-import InteractionCard from "@/components/cards/InteractionCard";
 
 async function Home({
   searchParams,

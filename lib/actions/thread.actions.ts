@@ -35,7 +35,11 @@ export async function fetchThreads(pageNumber = 1, pageSize = 20) {
         model: User,
         select: "_id name parentId image username", // Select only _id and username fields of the author
       },
-    });
+    })
+    // .populate({
+    //   path: 'repost',
+    //   model: Thread
+    // });
 
   // Count the total number of top-level posts (threads) i.e., threads that are not comments.
   const totalPostsCount = await Thread.countDocuments({
@@ -57,11 +61,12 @@ interface Params {
   communityId: string | null,
   path: string,
   taggedUsers?: string[],
-  topics?: string[]
+  topics?: string[],
+  repost?: string
 }
 
 
-export async function createThread({ text, author, communityId, path, taggedUsers = [], topics=[] }: Params
+export async function createThread({ text, author, communityId, path, taggedUsers = [], topics=[],repost }: Params
 ) {
   try {
     connectToDB();
@@ -71,6 +76,8 @@ export async function createThread({ text, author, communityId, path, taggedUser
       { _id: 1 }
     );
 
+
+    console.log('repsot===---------', repost)
 
 
 
@@ -82,6 +89,7 @@ export async function createThread({ text, author, communityId, path, taggedUser
         comments: [],
         createdAt: new Date(),
         topics,
+        repost,
         community: communityIdObject, // Assign communityId if provided, or leave it null for personal account
     });
 
@@ -193,7 +201,7 @@ export async function fetchThreadById(threadId: string) {
       .populate({
         path: "author",
         model: User,
-        select: "_id id name image",
+        select: "_id id name image username",
       }) // Populate the author field with _id and username
       .populate({
         path: "community",
