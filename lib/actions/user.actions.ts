@@ -208,28 +208,66 @@ export async function getActivities(userId: string) {
   try {
     connectToDB();
 
+    //convert userId to object id
+    const userObjectId = await  User.findOne(
+      { id: userId},
+      { _id: 1}
+    )
+
     // Find all threads created by the user
-    const userThreads = await Thread.find({ author: userId });
+    const userThreads = await Thread.find({ author: userObjectId });
 
     // Collect all the child thread ids (replies) from the 'children' field of each user thread
     const childThreadIds = userThreads.reduce((acc, userThread) => {
       return acc.concat(userThread.children);
     }, []);
 
+    //collect threads in which it is reposted
+    const repostedInThreads = userThreads.reduce((acc, userThread) => {
+      return acc.concat(userThread.repostedIn);
+    }
+    , []);
+
     // Find and return the child threads (replies) excluding the ones created by the same user
     const replies = await Thread.find({
       _id: { $in: childThreadIds },
-      author: { $ne: userId }, // Exclude threads authored by the same user
+      author: { $ne: userObjectId }, // Exclude threads authored by the same user
     }).populate({
       path: "author",
       model: User,
-      select: "name image _id",
+      select: "name image _id username",
     }).populate({
       path: 'parentId',
       model: Thread,
     });
 
-    return replies;
+    // exlude threads reposted by the same user
+    const repostedIn = await Thread.find({
+      _id: { $in: repostedInThreads},
+      author: {$ne: userObjectId},
+    }).populate({
+      path: 'author',
+      model: User,
+      select: 'name image _id username',
+    })
+
+    const myLikedThreads = await User.findOne(
+      { id: userId },
+      { likedThreads: 1}
+    ).populate({
+      path: 'likedThreads',
+      model: Thread,
+      populate: {
+        path: 'author',
+        model: User,
+        select: 'name image _id username',
+      }
+    })
+    const likedThreads = myLikedThreads.likedThreads;
+
+    console.log("myLikedThreads: ", myLikedThreads.likedThreads);
+
+    return {replies:replies, repostedIn: repostedIn, myLikedThreads: myLikedThreads.likedThreads};
   } catch (error) {
     console.error("Error fetching replies: ", error);
     throw error;
@@ -237,18 +275,75 @@ export async function getActivities(userId: string) {
 }
 
 
-
 export async function editThread(threadId: string, text: string, path: string) {
   try {
     connectToDB();
-
-   
 
     await Thread.updateOne({ _id: threadId  }, { text });
     revalidatePath(path);
   }
   catch (error) {
     console.error("Error editing thread: ", error);
+    throw error;
+  }
+}
+
+
+export async function handleLike(threadId: string, userId: string, pathname: string) {
+  try {
+    connectToDB();
+
+    const thread = await Thread.findOne(
+      { _id : threadId },
+    ).populate({
+      path: 'author',
+      model: User,
+      select: 'id likedThreads',
+    })
+    //get the author
+    const author = thread.author;
+    //fetch users liked threads
+    const likedThreads = author.likedThreads;
+    //check if the thread is already liked
+    const isLiked = likedThreads.likedThreads.includes(threadId);
+    //if liked remove from liked threads
+    if(isLiked){
+      await User.updateOne(
+        { id: userId },
+        { $pull: { likedThreads: threadId } },
+
+      )
+      
+      thread.likedBy = thread.likedBy.filter((id:any) => id !== userId);
+      thread.upvotes = thread.upvotes - 1;
+    }
+    //else add to liked threads and increment upvotes
+    else{
+      await User.updateOne(
+        {
+          id: userId
+        },
+        { $push: { likedThreads: threadId } }
+      )
+
+      //change userID to ibjectID
+      const userObjectId = await  User.findOne(
+        { id: userId},
+        { _id: 1}
+      )
+    
+      thread.likedBy.push(userObjectId);
+      thread.upvotes = thread.upvotes + 1;
+    }
+    await thread.save();
+    console.log("thread after like: ", thread);
+    revalidatePath(pathname);
+
+
+    return thread.upvotes;
+  }
+  catch (error) {
+    console.error("Error liking thread: ", error);
     throw error;
   }
 }

@@ -16,13 +16,10 @@ const RightSideBar = async () => {
   return (
     <section className='custom-scrollbar rightsidebar'>
       <div className='flex flex-col'>
-      <h3 className='text-heading4-medium text-light-1 mb-5'>Suggested Communities</h3>
         <SuggestedCommunities communities={communities.communities}/>
         
       </div>
-      <Separator className='bg-gray-700' />
       <div className='flex flex-col'>
-        <h3 className='text-heading4-medium text-light-1 mb-5'>Suggested Users</h3>
         <SuggestedUsers users={users.users}/>
       </div>
     </section>

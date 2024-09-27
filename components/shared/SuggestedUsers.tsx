@@ -6,8 +6,10 @@ import UserCard from '../cards/UserCard'
 
 const SuggestedUsers = ({ users } : { users : any[]}) => {
   return (
-    <ScrollArea className="w-full max-h-96 border border-gray-700 rounded-md px-2">
-      <div  className='flex flex-col gap-4' >
+    <ScrollArea className="w-full max-h-96 border bg-dark-1 border-gray-700 rounded-md px-2">
+        <h3 className='text-heading4-medium text-light-1 mb-5 sticky top-0 bg-dark-1 z-10 py-2'>Suggested Users</h3>
+
+      <div  className='flex flex-col gap-4 mb-5' >
 
 {
   users.map((user) => (

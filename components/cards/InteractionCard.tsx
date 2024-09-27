@@ -1,6 +1,8 @@
 'use client'
+import { handleLike } from '@/lib/actions/user.actions'
 import Image from 'next/image'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 
 
@@ -14,34 +16,38 @@ interface InteractionProps {
 const InteractionCard = ({ 
    thread
  }: {thread :  any}) => {
+    const { upvotes, comments, id, currentUserId } = JSON.parse(thread)
 
     const [hasLiked, setHasLiked] = useState(false)
+    const [likes, setLikes] = useState(upvotes)
+    const pathname = usePathname()
 
-    const { upvotes, comments, id } = JSON.parse(thread)
-
-
-
-    const handleLike = () => {
+    const handleLikeDislike =async () => {
+        const response =  await handleLike(id, currentUserId, pathname)
         setHasLiked(!hasLiked)
+        setLikes(response)
+
     }
 
   return (
     <div className='flex gap-3.5'>
-                                    
+            <div className='flex items-center gap-1'>
+                
             <Image
-            src={`${hasLiked ? '/assets/heart-filled.svg' : '/assets/heart-gray.svg'}`}
+            src={`${likes > 0 ? '/assets/heart-filled.svg' : '/assets/heart-gray.svg'}`}
             alt='heart'
             width={24}
             height={24}
-            onClick={handleLike}
+            onClick={handleLikeDislike}
             className='cursor-pointer object-contain'/>
             {
-                upvotes && upvotes > 0 && (
+                likes > 0 && (
                     <p className='text-subtle-medium text-gray-1'>
-                        {upvotes}
+                        {likes}
                     </p>
                 )
             }
+            </div>                   
             
             <div className='flex items-center gap-1'>
 

@@ -45,7 +45,7 @@ const page =  async({ params } : { params : { id : string}}) => {
             community={thread.community}
             createdAt={thread.createdAt}
             comments={thread.children}
-            downvotes={thread.downvotes}
+            upvotes={thread.upvotes}
                 />
         </div>
         

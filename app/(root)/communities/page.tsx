@@ -29,7 +29,7 @@ const page = async ({ params } : { params: { id : string }}) => {
     <section>
         <h1 className="head-text mb-7">Communities</h1>
 
-        <div className='mt-14 grid grid-cols-1 sm:grid-cols-2 gap-9'>
+        <div className='mt-14 flex flex-col gap-9'>
   {
     result.communities.length === 0 ? (
       <p className='no-result'>No community yet</p>

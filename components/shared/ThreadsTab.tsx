@@ -39,7 +39,7 @@ const ThreadsTab = async ({
                 community={thread.community}
                 createdAt={thread.createdAt}
                 comments={thread.children}
-                downvotes={thread.downvotes}
+                upvotes={thread.upvotes}
                 />
             ))
         }

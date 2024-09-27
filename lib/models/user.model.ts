@@ -12,6 +12,11 @@ const userSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now },
     taggedIn : [{ type: mongoose.Schema.Types.ObjectId, ref: 'Thread' }],
     invitedTo : [{ type: mongoose.Schema.Types.ObjectId, ref: 'Community' }],
+    likedThreads : [{ type: mongoose.Schema.Types.ObjectId, ref: 'Thread' }],
+    myLikedThreads : [{ type: mongoose.Schema.Types.ObjectId, ref: 'Thread' }],
+    sharedThreadsByFr : [{ type: mongoose.Schema.Types.ObjectId, ref: 'Thread' }],
+    following : [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    followers : [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   });
 
 const User = mongoose.models.User || mongoose.model('User', userSchema);

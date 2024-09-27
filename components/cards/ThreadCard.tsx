@@ -98,7 +98,6 @@ repost
 
         if (repost){
             repostedThread = await fetchThreadById(repost)
-            {console.log('reposted thread fetched',repostedThread)}
         }
 
         
@@ -133,17 +132,23 @@ repost
                     </Link>
                         <Content content={content} />
                         {
-                          repostedThread &&   <ThreadCard 
-                            id={repostedThread._id.toString()}
-                            currentUserId={currentUserId}
-                            parentId={repostedThread.parentId}
-                            content={repostedThread.text}
-                            author={repostedThread.author}
-                            community={repostedThread.community}
-                            createdAt={repostedThread.createdAt}
-                            comments={repostedThread.children}
-                            downvotes={repostedThread.downvotes}
-                             />
+                          repostedThread &&   <Link href={`/thread/${repostedThread._id}`}>
+                          
+                          <div className='border border-gray-600 border-2 mt-3 rounded-md'>
+                            
+                              <ThreadCard 
+                              id={repostedThread._id.toString()}
+                              currentUserId={currentUserId}
+                              parentId={repostedThread.parentId}
+                              content={repostedThread.text}
+                              author={repostedThread.author}
+                              community={repostedThread.community}
+                              createdAt={repostedThread.createdAt}
+                              comments={repostedThread.children}
+                              upvotes={repostedThread.upvotes}
+                               />
+                            </div>
+                          </Link>
                         }
                     
                     
@@ -152,7 +157,8 @@ repost
             {
                 upvotes,
                 comments,
-                id
+                id,
+                currentUserId
                 
             }
         )

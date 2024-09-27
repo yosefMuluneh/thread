@@ -9,7 +9,7 @@ import ThreadsTab from '@/components/shared/ThreadsTab'
 import UserCard from '@/components/cards/UserCard'
 import Link from 'next/link'
 
-const page = async ({ params } : { params: { id : string }}) => {
+const page = async () => {
     const user = await currentUser()
 
     var userInfo : any = null
@@ -25,31 +25,18 @@ const page = async ({ params } : { params: { id : string }}) => {
         }
     }
 
-
-    const threads = await fetchUserThreads(userInfo.id)
-
-    //check if each thread inside threads has children
-    const threadsWithReplies = threads.threads.filter((thread:any)=>thread.children.length > 0)
-    //inverse the order of threadsWithReplies
-    threadsWithReplies.reverse()
-    const theReplies = threadsWithReplies.map((thread:any)=>thread.children)
-    // make all the elements into one array
-  const replies = theReplies.flat()
-
-
-
-    {console.log(replies)}
+  const response = await getActivities(userInfo.id)
 
   return (
     <section >
       <h1 className='head-text mb-10'> Activities</h1>
       <section className='mt-10 flex flex-col gap-5'>
         {
-          replies.length > 0 ? (
+          response.replies.length > 0 && (
             <>
             {
-              replies.map((activity: any) => (
-                <Link key={activity._id} href={`/thread/${activity.parentId}`} >
+              response.replies.map((activity: any) => (
+                <Link key={activity._id} href={`/thread/${activity.parentId.parentId}`} >
                   <article className='activity-card'>
                     <Image 
                     src={activity.author.image}
@@ -67,8 +54,63 @@ const page = async ({ params } : { params: { id : string }}) => {
                 </Link>
               ))
             }
+            
             </>
-          ) : <p className='!text-base-regular text-light-3'>No activity yet</p>
+          ) 
+        }
+        {
+          response.repostedIn.length > 0 && (
+            <>
+            {
+              response.repostedIn.map((activity: any) => (
+                <Link key={activity._id} href={`/thread/${activity._id}`} >
+                  <article className='activity-card'>
+                    <Image 
+                    src={activity.author.image}
+                    alt='profile picture'
+                    width={20}
+                    height={20}
+                    className='rounded-full object-cover' />
+                    <p className='!text-small-regular text-light-1'>
+                      <span className='mr-1 text-primary-500'>
+                        {activity.author.name}
+                      </span>
+                      reposted your thread
+                    </p>
+                  </article>
+                </Link>
+              ))
+            }
+            
+            </>
+          )
+        }
+        {
+          response.myLikedThreads.length > 0 &&(
+            <>
+            {
+              response.myLikedThreads.map((activity: any) => (
+                <Link key={activity._id} href={`/thread/${activity._id}`} >
+                  <article className='activity-card'>
+                    <Image 
+                    src={activity.author.image}
+                    alt='profile picture'
+                    width={20}
+                    height={20}
+                    className='rounded-full object-cover' />
+                    <p className='!text-small-regular text-light-1'>
+                      <span className='mr-1 text-primary-500'>
+                        {activity.author.name}
+                      </span>
+                      liked your thread
+                    </p>
+                  </article>
+                </Link>
+              ))
+            }
+            
+            </>
+          ) 
         }
       </section>
     </section>

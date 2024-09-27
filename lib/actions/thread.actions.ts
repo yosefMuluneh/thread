@@ -74,11 +74,7 @@ export async function createThread({ text, author, communityId, path, taggedUser
     const communityIdObject = await Community.findOne(
       { id: communityId },
       { _id: 1 }
-    );
-
-
-    console.log('repsot===---------', repost)
-
+    )
 
 
     const createdThread = await Thread.create({
@@ -90,8 +86,10 @@ export async function createThread({ text, author, communityId, path, taggedUser
         createdAt: new Date(),
         topics,
         repost,
+        repostedIn : [],
         community: communityIdObject, // Assign communityId if provided, or leave it null for personal account
     });
+
 
 
     //handle tagged users
@@ -116,6 +114,21 @@ export async function createThread({ text, author, communityId, path, taggedUser
       await Community.findByIdAndUpdate(communityIdObject, {
         $push: { threads: createdThread._id },
       });
+    }
+    // handle repostedIn
+    if (repost) {
+      // Find the original thread by its ID
+      const originalThread = await Thread.findById(repost);
+
+      if (!originalThread) {
+        throw new Error("Thread not found");
+      }
+
+      // Add the reposted thread's ID to the original thread's repostedIn array
+      originalThread.repostedIn.push(createdThread._id);
+
+      // Save the updated original thread to the database
+      await originalThread.save();
     }
 
     revalidatePath(path);
@@ -186,6 +199,16 @@ export async function deleteThread(id: string, path: string): Promise<void> {
       { _id: { $in: Array.from(uniqueCommunityIds) } },
       { $pull: { threads: { $in: descendantThreadIds } } }
     );
+
+    const repostedThread = await Thread.findById(mainThread.repost[0]);
+
+    // Update the reposted thread's repostedIn array
+    if (repostedThread) {
+      repostedThread.repostedIn = repostedThread.repostedIn.filter(
+        (threadId: string) => threadId.toString() !== mainThread._id.toString()
+      );
+      await repostedThread.save();
+    }
 
     revalidatePath(path);
   } catch (error: any) {

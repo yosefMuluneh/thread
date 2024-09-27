@@ -21,7 +21,6 @@ async function Home({
     searchParams.page ? +searchParams.page : 1,
     30
   );
-
   return (
     <>
       <h1 className='head-text text-left'>Home</h1>
@@ -43,6 +42,8 @@ async function Home({
                   community={post.community}
                   createdAt={post.createdAt}
                   comments={post.children}
+                  repost={post?.repost[0]}
+                  upvotes={post.upvotes}
                 />
                 
             ))}
