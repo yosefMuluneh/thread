@@ -211,7 +211,10 @@ export async function fetchUsers({
 
 export async function getActivities(userId: string) {
   try {
-    await connectToDB();
+    const authenticatedUser = await getAuthenticatedUser();
+    if (authenticatedUser.id !== userId) {
+      throw new Error("You are not allowed to view this activity.");
+    }
 
     //convert userId to object id
     const userObjectId = await User.findOne({ id: userId }, { _id: 1 });
