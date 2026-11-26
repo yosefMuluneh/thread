@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Keep Next.js file tracing scoped to this app when parent folders contain other lockfiles.
+  outputFileTracingRoot: process.cwd(),
   serverExternalPackages: ["mongoose"],
   images: {
     remotePatterns: [
