@@ -7,7 +7,7 @@ import Thread from "../models/thread.model";
 import User from "../models/user.model";
 
 import { connectToDB } from "../mongoose";
-import path from "path";
+
 
 export async function createCommunity(
   id: string,
@@ -18,7 +18,7 @@ export async function createCommunity(
   createdById: string // Change the parameter name to reflect it's an id
 ) {
   try {
-    connectToDB();
+    await connectToDB();
     // Find the user with the provided unique id
     const user = await User.findOne({ id: createdById });
 
@@ -52,7 +52,7 @@ export async function createCommunity(
 
 export async function fetchCommunityDetails(id: string) {
   try {
-    connectToDB();
+    await connectToDB();
 
     const communityDetails = await Community.findOne({ id }).populate([
       "createdBy",
@@ -73,7 +73,7 @@ export async function fetchCommunityDetails(id: string) {
 
 export async function fetchCommunityPosts(id: string) {
   try {
-    connectToDB();
+    await connectToDB();
 
     const communityPosts = await Community.findOne({id}).populate({
       path: "threads",
@@ -120,7 +120,7 @@ export async function fetchCommunities({
   sortBy?: SortOrder;
 }) {
   try {
-    connectToDB();
+    await connectToDB();
 
     // Calculate the number of communities to skip based on the page number and page size.
     const skipAmount = (pageNumber - 1) * pageSize;
@@ -169,7 +169,7 @@ export async function sendInvitationToUser(
   userId: string
 ) {
   try {
-    connectToDB();
+    await connectToDB();
 
     // Find the community by its unique id
     const community = await Community.findOne({ id: communityId });
@@ -186,17 +186,19 @@ export async function sendInvitationToUser(
     }
 
     // Check if the user is already a member of the community
-    if (community.members.includes(user._id)) {
-      throw new Error("User is already a member of the community");
-    }
+    const alreadyMember = community.members.some(
+      (member: any) => member.toString() === user._id.toString()
+    );
+    if (alreadyMember) throw new Error("User is already a member of the community");
 
-    // Add the user's _id to the invitations array in the community
-    community.invitations.push(user._id);
-    await community.save();
-
-    //send invitation to user
-    user.invitedTo.push(community._id);
-    await user.save();
+    await Community.updateOne(
+      { _id: community._id },
+      { $addToSet: { invitations: user._id } }
+    );
+    await User.updateOne(
+      { _id: user._id },
+      { $addToSet: { invitedTo: community._id } }
+    );
 
     return community;
   } catch (error) {
@@ -211,7 +213,7 @@ export async function addMemberToCommunity(
   memberId: string
 ) {
   try {
-    connectToDB();
+    await connectToDB();
 
     // Find the community by its unique id
     const community = await Community.findOne({ id: communityId });
@@ -228,17 +230,23 @@ export async function addMemberToCommunity(
     }
 
     // Check if the user is already a member of the community
-    if (community.members.includes(user._id)) {
-      throw new Error("User is already a member of the community");
-    }
+    const alreadyMember = community.members.some(
+      (member: any) => member.toString() === user._id.toString()
+    );
+    if (alreadyMember) return community;
 
-    // Add the user's _id to the members array in the community
-    community.members.push(user._id);
-    await community.save();
-
-    // Add the community's _id to the communities array in the user
-    user.communities.push(community._id);
-    await user.save();
+    await Community.updateOne(
+      { _id: community._id },
+      { $addToSet: { members: user._id } }
+    );
+    await User.updateOne(
+      { _id: user._id },
+      { $addToSet: { communities: community._id }, $pull: { invitedTo: community._id } }
+    );
+    await Community.updateOne(
+      { _id: community._id },
+      { $pull: { invitations: user._id } }
+    );
 
     return community;
   } catch (error) {
@@ -253,7 +261,7 @@ export async function removeUserFromCommunity(
   communityId: string
 ) {
   try {
-    connectToDB();
+    await connectToDB();
 
     const userIdObject = await User.findOne({ id: userId }, { _id: 1 });
     const communityIdObject = await Community.findOne(
@@ -296,7 +304,7 @@ export async function updateCommunityInfo(
   image: string
 ) {
   try {
-    connectToDB();
+    await connectToDB();
 
     // Find the community by its _id and update the information
     const updatedCommunity = await Community.findOneAndUpdate(
@@ -318,30 +326,29 @@ export async function updateCommunityInfo(
 
 export async function deleteCommunity(communityId: string) {
   try {
-    connectToDB();
+    await connectToDB();
 
-    // Find the community by its ID and delete it
-    const deletedCommunity = await Community.findOneAndDelete({
-      id: communityId,
-    });
+    const community = await Community.findOne({ id: communityId }).select("_id");
+    if (!community) throw new Error("Community not found.");
 
-    if (!deletedCommunity) {
-      throw new Error("Community not found");
-    }
+    const communityThreads = await Thread.find({ community: community._id }).select("_id");
+    const threadIds = communityThreads.map((thread) => thread._id);
+    const deletedCommunity = await Community.findOneAndDelete({ _id: community._id });
 
-    // Delete all threads associated with the community
-    await Thread.deleteMany({ community: communityId });
-
-    // Find all users who are part of the community
-    const communityUsers = await User.find({ communities: communityId });
-
-    // Remove the community from the 'communities' array for each user
-    const updateUserPromises = communityUsers.map((user) => {
-      user.communities.pull(communityId);
-      return user.save();
-    });
-
-    await Promise.all(updateUserPromises);
+    await Thread.deleteMany({ community: community._id });
+    await User.updateMany(
+      {},
+      {
+        $pull: {
+          communities: community._id,
+          invitedTo: community._id,
+          threads: { $in: threadIds },
+          likedThreads: { $in: threadIds },
+          myLikedThreads: { $in: threadIds },
+          taggedIn: { $in: threadIds },
+        },
+      }
+    );
 
     return deletedCommunity;
   } catch (error) {
