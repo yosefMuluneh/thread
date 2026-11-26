@@ -26,7 +26,7 @@ const page = async ({
 
   if (!user) return null;
 
-  const communityDetail = await fetchCommunityDetails(routeParams.id);
+  await fetchMyCommunities();\n  const communityDetail = await fetchCommunityDetails(routeParams.id);
   if (!communityDetail) return null;
 
   let adminData: { requests: any[]; invitations: any[] } | null = null;
