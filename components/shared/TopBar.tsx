@@ -25,7 +25,7 @@ const TopBar = () => {
           </div>
           <OrganizationSwitcher
           appearance={{
-            baseTheme: dark,
+            theme: dark,
             elements:{
               organizationSwitcherTrigger:
                 "py-2 px-4"
