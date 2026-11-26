@@ -6,7 +6,9 @@ import PostThread from '@/components/forms/PostThread'
 import EditThread from '@/components/forms/EditThread'
 import { fetchThreadById } from '@/lib/actions/thread.actions'
 
-const page = async ({ params } : { params : { id : string}}) => {
+const page = async ({ params } : { params: Promise<{ id: string }> }) => {
+    const routeParams = await params;
+    const routeParams = await params;
     const user = await currentUser()
 
     if (!user) {
@@ -19,7 +21,7 @@ const page = async ({ params } : { params : { id : string}}) => {
         if(!userInfo?.onboarded){
             redirect('/onboarding')
     }
-    const thread = await fetchThreadById(params.id)
+    const thread = await fetchThreadById(routeParams.id)
 
     return (
         <>
