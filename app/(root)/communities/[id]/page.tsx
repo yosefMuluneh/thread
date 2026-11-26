@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import Image from 'next/image'
 import ThreadsTab from '@/components/shared/ThreadsTab'
 import { communityTabs } from '@/constants'
-import { fetchCommunityDetails } from '@/lib/actions/community.actions'
+import { fetchCommunityDetails, fetchCommunityAdminData } from '@/lib/actions/community.actions'\nimport CommunityAdminPanel from '@/components/shared/CommunityAdminPanel'
 import UserCard from '@/components/cards/UserCard'
 
 const page = async ({ params } : { params: Promise<{ id: string }> }) => {
@@ -14,7 +14,7 @@ const page = async ({ params } : { params: Promise<{ id: string }> }) => {
 
     if (!user) return null;
 
-    const communityDetail = await fetchCommunityDetails(routeParams.id)
+    const communityDetail = await fetchCommunityDetails(routeParams.id)\n    if (!communityDetail) return null\n\n    let adminData: { requests: any[]; invitations: any[] } | null = null\n    try {\n        adminData = await fetchCommunityAdminData(routeParams.id)\n    } catch {\n        // Non-admin members can view the community but not its management tools.\n    }\n\n    const isCreator = (communityDetail.createdBy as any)?.id === user.id\n    const isJoined = communityDetail.members?.some((member: any) => member.id === user.id) || isCreator\n    const hasRequested = communityDetail.joinRequests?.some((request: any) => request.user?.toString() === (user.id as any)) || false
 
     return (
         <section>
