@@ -10,7 +10,6 @@ import UserCard from '@/components/cards/UserCard'
 
 const page = async ({ params } : { params: Promise<{ id: string }> }) => {
     const routeParams = await params;
-    const routeParams = await params;
     const user = await currentUser()
 
     if (!user) return null;
