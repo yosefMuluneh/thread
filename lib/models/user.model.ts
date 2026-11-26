@@ -11,7 +11,6 @@ const userSchema = new mongoose.Schema({
     communities : [{ type: mongoose.Schema.Types.ObjectId, ref: 'Community' }],
     createdAt: { type: Date, default: Date.now },
     taggedIn : [{ type: mongoose.Schema.Types.ObjectId, ref: 'Thread' }],
-    invitedTo : [{ type: mongoose.Schema.Types.ObjectId, ref: 'Community' }],
     likedThreads : [{ type: mongoose.Schema.Types.ObjectId, ref: 'Thread' }],
     myLikedThreads : [{ type: mongoose.Schema.Types.ObjectId, ref: 'Thread' }],
     sharedThreadsByFr : [{ type: mongoose.Schema.Types.ObjectId, ref: 'Thread' }],
