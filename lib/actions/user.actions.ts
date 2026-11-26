@@ -9,6 +9,7 @@ import User from "../models/user.model";
 
 import { connectToDB } from "../mongoose";
 import { getAuthenticatedUser } from "@/lib/auth";
+import { userValidation } from "@/lib/validations/user";
 
 export async function fetchUser(userId: string) {
   try {
@@ -46,16 +47,23 @@ export async function updateUser({
       throw new Error("You are not allowed to update this profile.");
     }
 
+    const validatedProfile = userValidation.parse({
+      profile_photo: image,
+      name,
+      username,
+      bio,
+    });
+
     await User.findOneAndUpdate(
-      { id: authenticatedUser.id },
+      { _id: authenticatedUser._id },
       {
-        username: username.toLowerCase(),
-        name,
-        bio,
-        image,
+        username: validatedProfile.username.toLowerCase(),
+        name: validatedProfile.name,
+        bio: validatedProfile.bio,
+        image: validatedProfile.profile_photo,
         onboarded: true,
       },
-      { upsert: true }
+      { new: true, runValidators: true }
     );
 
     if (path === "/profile/edit") {
@@ -274,6 +282,9 @@ export async function editThread(threadId: string, text: string, path: string) {
   try {
     const authenticatedUser = await getAuthenticatedUser();
     if (!mongoose.isValidObjectId(threadId)) throw new Error("Invalid thread ID.");
+    if (!text || text.trim().length < 3 || text.length > 5000) {
+      throw new Error("Thread text must be between 3 and 5000 characters.");
+    }
 
     const updatedThread = await Thread.findOneAndUpdate(
       { _id: threadId, author: authenticatedUser._id },
