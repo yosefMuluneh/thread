@@ -10,7 +10,7 @@ interface Props {
     name: string;
     username: string;
     image?: string;
-    invitedBy?: { name?: string; username?: string } | null;
+    invitedBy?: { id?: string; name?: string; username?: string; image?: string } | null;
   };
 }
 
@@ -32,21 +32,37 @@ export default function CommunityInvitationCard({ community }: Props) {
   };
 
   return (
-    <article className="rounded-xl border border-dark-4 bg-dark-2 p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
+    <article className="rounded-xl border border-dark-4 bg-dark-2 p-4 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="min-w-0">
           <h3 className="text-base-semibold text-light-1">{community.name}</h3>
-          <p className="text-small-regular text-gray-1">
+          <p className="mt-1 text-small-regular text-gray-1">
             @{community.username}
             {community.invitedBy?.username ? ` · invited by @${community.invitedBy.username}` : ""}
+          </p>
+          <p className="mt-2 text-xs text-gray-1">
+            You have been invited to join this community.
           </p>
         </div>
         {status === "pending" ? (
           <div className="flex gap-2">
-            <Button type="button" size="sm" disabled={isPending} onClick={() => respond("accept")}>
+            <Button
+              type="button"
+              size="sm"
+              disabled={isPending}
+              onClick={() => respond("accept")}
+              className="bg-primary-500 text-white hover:bg-primary-500/90"
+            >
               {isPending ? "Please wait..." : "Accept"}
             </Button>
-            <Button type="button" size="sm" variant="outline" disabled={isPending} onClick={() => respond("decline")}>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={isPending}
+              onClick={() => respond("decline")}
+              className="border border-dark-4 bg-dark-3 text-light-1 hover:bg-dark-4 hover:text-light-1"
+            >
               Decline
             </Button>
           </div>
@@ -56,7 +72,7 @@ export default function CommunityInvitationCard({ community }: Props) {
           </p>
         )}
       </div>
-      {error && <p role="alert" className="mt-2 text-xs text-red-500">{error}</p>}
+      {error && <p role="alert" className="mt-3 text-xs text-red-500">{error}</p>}
     </article>
   );
 }
