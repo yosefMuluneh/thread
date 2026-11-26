@@ -2,6 +2,7 @@
 
 import mongoose, { FilterQuery, SortOrder } from "mongoose";
 import { revalidatePath } from "next/cache";
+import { auth } from "@clerk/nextjs/server";
 
 import Community from "../models/community.model";
 import Thread from "../models/thread.model";
@@ -42,10 +43,11 @@ export async function updateUser({
   image,
 }: Params): Promise<void> {
   try {
-    const authenticatedUser = await getAuthenticatedUser();
-    if (authenticatedUser.id !== userId) {
+    const { userId: authenticatedClerkId } = await auth();
+    if (!authenticatedClerkId || authenticatedClerkId !== userId) {
       throw new Error("You are not allowed to update this profile.");
     }
+    await connectToDB();
 
     const validatedProfile = userValidation.parse({
       profile_photo: image,
@@ -55,7 +57,7 @@ export async function updateUser({
     });
 
     await User.findOneAndUpdate(
-      { _id: authenticatedUser._id },
+      { id: authenticatedClerkId },
       {
         username: validatedProfile.username.toLowerCase(),
         name: validatedProfile.name,
@@ -63,7 +65,7 @@ export async function updateUser({
         image: validatedProfile.profile_photo,
         onboarded: true,
       },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true, upsert: true, setDefaultsOnInsert: true }
     );
 
     if (path === "/profile/edit") {
