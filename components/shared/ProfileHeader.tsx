@@ -12,7 +12,7 @@ interface Props {
   type?: "User" | "Community";
   joined?: boolean;
   isCommunityCreator?: boolean;
-  communityRequested?: boolean;
+  communityRequested?: boolean;\n  requiresApproval?: boolean;
   following?: boolean;
 }
 
@@ -26,7 +26,7 @@ const ProfileHeader = ({
   type = "User",
   joined = false,
   isCommunityCreator = false,
-  communityRequested = false,
+  communityRequested = false,\n  requiresApproval = false,
   following = false,
 }: Props) => {
   const isOwnProfile = accountId === authUserId;
