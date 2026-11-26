@@ -375,23 +375,39 @@ export async function requestCommunityMembership(communityId: string) {
   const isClerkMember = memberships.some(
     (membership) => membership.organization.id === community.id
   );
-  const isMember = isClerkMember || community.members.some(
-    (member: any) => member.toString() === user._id.toString()
-  );
-  if (isMember) {
-    if (isClerkMember) {
-      await Promise.all([
-        Community.updateOne({ _id: community._id }, { $addToSet: { members: user._id } }),
-        User.updateOne({ _id: user._id }, { $addToSet: { communities: community._id } }),
-      ]);
-    }
+
+  if (isClerkMember) {
+    await Promise.all([
+      Community.updateOne(
+        { _id: community._id },
+        { $addToSet: { members: user._id } }
+      ),
+      User.updateOne(
+        { _id: user._id },
+        { $addToSet: { communities: community._id } }
+      ),
+    ]);
     return { requested: false, joined: true };
   }
+
+  // Clerk is authoritative: remove stale local membership before creating a request.
+  await Promise.all([
+    Community.updateOne(
+      { _id: community._id },
+      { $pull: { members: user._id } }
+    ),
+    User.updateOne(
+      { _id: user._id },
+      { $pull: { communities: community._id } }
+    ),
+  ]);
 
   const hasInvitation = (community.invitations ?? []).some(
     (item: any) => item.user?.toString() === user._id.toString()
   );
-  if (hasInvitation) throw new Error("You already have an invitation. Accept it from My Communities.");
+  if (hasInvitation) {
+    throw new Error("You already have an invitation. Accept it from My Communities.");
+  }
 
   const hasRequest = (community.joinRequests ?? []).some(
     (item: any) => item.user?.toString() === user._id.toString()
@@ -404,7 +420,7 @@ export async function requestCommunityMembership(communityId: string) {
   );
 
   revalidatePath(`/communities/${community.id}`);
-  return { requested: true };
+  return { requested: true, joined: false };
 }
 
 export async function fetchCommunityAdminData(communityId: string) {
@@ -485,16 +501,20 @@ export async function toggleCommunityMembership(
 
   const isCreator =
     community.createdBy?.toString() === user._id.toString();
-  const isMember = community.members.some(
-    (member: any) => member.toString() === user._id.toString()
+  if (isCreator) {
+    throw new Error("The community owner cannot leave their own community.");
+  }
+
+  const clerk = await clerkClient();
+  const { data: memberships } = await clerk.users.getOrganizationMembershipList({
+    userId: user.id,
+    limit: 500,
+  });
+  const isClerkMember = memberships.some(
+    (membership) => membership.organization.id === community.id
   );
 
-  if (isMember || isCreator) {
-    if (isCreator) {
-      throw new Error("The community owner cannot leave their own community.");
-    }
-
-    const clerk = await clerkClient();
+  if (isClerkMember) {
     await clerk.organizations.deleteOrganizationMembership({
       organizationId: community.id,
       userId: user.id,
@@ -517,7 +537,7 @@ export async function toggleCommunityMembership(
   }
 
   const result = await requestCommunityMembership(communityId);
-  return { joined: false, requested: result.requested };
+  return { joined: result.joined, requested: result.requested };
 }
 
 export async function cancelCommunityInvitation(
