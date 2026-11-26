@@ -9,7 +9,7 @@ import { fetchUser } from "@/lib/actions/user.actions";
 async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ [key: string]: string | undefined }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const resolvedSearchParams = await searchParams;
   const user = await currentUser();
@@ -18,10 +18,9 @@ async function Home({
   const userInfo = await fetchUser(user.id);
   if (!userInfo?.onboarded) redirect("/onboarding");
 
-  const result = await fetchThreads(
-    resolvedSearchParams.page ? +resolvedSearchParams.page : 1,
-    30
-  );
+  const pageParam = resolvedSearchParams.page;
+  const pageNumber = Array.isArray(pageParam) ? pageParam[0] : pageParam;
+  const result = await fetchThreads(pageNumber ? Number(pageNumber) : 1, 30);
   return (
     <>
       <h1 className='head-text text-left'>Home</h1>
