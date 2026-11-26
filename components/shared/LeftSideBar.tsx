@@ -17,11 +17,13 @@ export const LeftSideBar = () => {
           sidebarLinks.map((link)=>{
             const isActive = (pathname.includes(link.route) && link.route.length > 1) || (pathname === link.route);
             
-            if(link.route === '/profile') link.route = `/profile/${userId}`
+            const href = link.route === '/profile'
+              ? (userId ? `/profile/${userId}` : '/sign-in')
+              : link.route
 
             return(
             <Link 
-            href={link.route} 
+            href={href} 
             key={link.label}
             className={`leftsidebar_link ${isActive && 'bg-primary-500'}`}>
               <Image 
