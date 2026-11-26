@@ -8,12 +8,14 @@ import { communityTabs } from '@/constants'
 import { fetchCommunityDetails } from '@/lib/actions/community.actions'
 import UserCard from '@/components/cards/UserCard'
 
-const page = async ({ params } : { params :{ id : string}}) => {
+const page = async ({ params } : { params: Promise<{ id: string }> }) => {
+    const routeParams = await params;
+    const routeParams = await params;
     const user = await currentUser()
 
     if (!user) return null;
 
-    const communityDetail = await fetchCommunityDetails(params.id)
+    const communityDetail = await fetchCommunityDetails(routeParams.id)
 
     return (
         <section>
