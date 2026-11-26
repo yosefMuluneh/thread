@@ -290,6 +290,23 @@ export async function editThread(threadId: string, text: string, path: string) {
 }
 
 
+export async function getThreadLikeState(threadId: string) {
+  const authenticatedUser = await getAuthenticatedUser();
+  if (!mongoose.isValidObjectId(threadId)) {
+    throw new Error("Invalid thread ID.");
+  }
+
+  const thread = await Thread.findById(threadId).select("likedBy upvotes");
+  if (!thread) throw new Error("Thread not found.");
+
+  return {
+    upvotes: thread.upvotes,
+    hasLiked: thread.likedBy.some(
+      (id: mongoose.Types.ObjectId) => id.toString() === authenticatedUser._id.toString()
+    ),
+  };
+}
+
 export async function handleLike(threadId: string, _userId: string, pathname: string) {
   try {
     const authenticatedUser = await getAuthenticatedUser();
