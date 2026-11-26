@@ -2,6 +2,7 @@
 import { currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { fetchTaggedInThreads, fetchUser, fetchUserThreads } from '@/lib/actions/user.actions'
+import { getAuthenticatedUser } from '@/lib/auth'
 import ProfileHeader from '@/components/shared/ProfileHeader'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import Image from 'next/image'
@@ -27,6 +28,11 @@ const page = async ({ params } : { params: Promise<{ id: string }> }) => {
 
 
 
+    const authenticatedUser = await getAuthenticatedUser()
+    const isFollowing = (userInfo.followers ?? []).some(
+        (follower: any) => follower.toString() === authenticatedUser._id.toString()
+    )
+
     const threads = await fetchUserThreads(userInfo.id)
 
     //check if each thread inside threads has children
@@ -44,7 +50,8 @@ const page = async ({ params } : { params: Promise<{ id: string }> }) => {
             name={userInfo.name}
             username={userInfo.username}
             imgUrl={userInfo.image}
-            bio={userInfo.bio} />
+            bio={userInfo.bio}
+            following={isFollowing} />
 
         <div className='mt-9'>
             <Tabs defaultValue='threads' className='w-full'>
