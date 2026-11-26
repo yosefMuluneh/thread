@@ -223,65 +223,16 @@ async function getCommunityAdminContext(communityId: string) {
   return { user, community, clerk };
 }
 
-export async function searchCommunityInviteCandidates(
+export async function export async function searchCommunityInviteCandidates(
   communityId: string,
   searchString: string
 ) {
   const { user, community } = await getCommunityAdminContext(communityId);
   await connectToDB();
 
-  const term = searchString.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\export async function sendInvitationToUser(
-  communityId: string,
-  username: string
-) {
-  const { user, community, clerk } = await getCommunityAdminContext(communityId);
-  const normalizedUsername = username.trim().replace(/^@/, "").toLowerCase();
-  if (!normalizedUsername) throw new Error("Enter a username to invite.");
-
-  const invitee = await User.findOne({ username: normalizedUsername });
-  if (!invitee) throw new Error("No user with that username was found.");
-  if (invitee._id.equals(user._id)) throw new Error("You cannot invite yourself.");
-
-  const { data: inviteeMemberships } = await clerk.users.getOrganizationMembershipList({
-    userId: invitee.id,
-    limit: 500,
-  });
-  const isMember = inviteeMemberships.some(
-    (membership) => membership.organization.id === community.id
-  ) || community.members.some(
-    (member: any) => member.toString() === invitee._id.toString()
-  );
-  if (isMember) throw new Error("That user is already a community member.");
-
-  const alreadyInvited = (community.invitations ?? []).some(
-    (invitation: any) => invitation.user?.toString() === invitee._id.toString()
-  );
-  if (alreadyInvited) throw new Error("An invitation is already pending for this user.");
-
-  await Promise.all([
-    Community.updateOne(
-      { _id: community._id },
-      {
-        $push: {
-          invitations: {
-            user: invitee._id,
-            invitedBy: user._id,
-            createdAt: new Date(),
-          },
-        },
-        $pull: { joinRequests: { user: invitee._id } },
-      }
-    ),
-    User.updateOne(
-      { _id: invitee._id },
-      { $addToSet: { invitedTo: community._id } }
-    ),
-  ]);
-
-  revalidatePath(`/communities/${community.id}`);
-  revalidatePath("/communities");
-  return { success: true, invitedUsername: invitee.username };
-}");
+  const term = searchString.trim().split("").map((character) =>
+    ".*+?^$()|[]{}\\".includes(character) ? "\\" + character : character
+  ).join("");
   if (term.length < 2) return [];
 
   const excludedIds = [
@@ -373,8 +324,8 @@ export async function sendInvitationsToUsers(
     })
   );
 
-  revalidatePath(`/communities/${community.id}`);
   revalidatePath("/communities");
+  revalidatePath(`/communities/${community.id}`);
   return {
     success: true,
     invitedCount: eligibleInvitees.length,
