@@ -99,31 +99,27 @@ const page = async () => {
           )
         }
         {
-          response.myLikedThreads.length > 0 &&(
-            <>
-            {
-              response.myLikedThreads.map((activity: any) => (
-                <Link key={activity._id} href={`/thread/${activity._id}`} >
+          response.likedThreadsReceived.map((thread: any) =>
+            (thread.likedBy ?? [])
+              .filter((liker: any) => liker.id !== user.id)
+              .map((liker: any) => (
+                <Link key={`${thread._id}-${liker._id}`} href={`/thread/${thread._id}`}>
                   <article className='activity-card'>
-                    <Image 
-                    src={activity.author.image}
-                    alt='profile picture'
-                    width={20}
-                    height={20}
-                    className='rounded-full object-cover' />
+                    <Image
+                      src={liker.image}
+                      alt='profile picture'
+                      width={20}
+                      height={20}
+                      className='rounded-full object-cover'
+                    />
                     <p className='!text-small-regular text-light-1'>
-                      <span className='mr-1 text-primary-500'>
-                        {activity.author.name}
-                      </span>
+                      <span className='mr-1 text-primary-500'>{liker.name}</span>
                       liked your thread
                     </p>
                   </article>
                 </Link>
               ))
-            }
-            
-            </>
-          ) 
+          )
         }
       </section>
     </section>

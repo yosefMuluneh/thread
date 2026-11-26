@@ -14,36 +14,39 @@ export async function createCommunity(
 ) {
   await connectToDB();
 
-  const user = await User.findOne({ id: createdById });
-  if (!user) throw new Error("Community creator was not found.");
+  // The organization webhook can arrive before the corresponding user profile
+  // exists locally. Persist the Clerk organization regardless; membership
+  // webhooks and the My Communities reconciliation will link the user later.
+  const user = createdById ? await User.findOne({ id: createdById }) : null;
+  const insertFields: Record<string, unknown> = {
+    id,
+    name,
+    username,
+    image,
+    bio,
+  };
+  if (user) insertFields.createdBy = user._id;
 
   const community = await Community.findOneAndUpdate(
     { id },
-    {
-      $setOnInsert: {
-        id,
-        name,
-        username,
-        image,
-        bio,
-        createdBy: user._id,
-      },
-    },
+    { $setOnInsert: insertFields },
     { new: true, upsert: true, setDefaultsOnInsert: true }
   );
 
   if (!community) throw new Error("Unable to create or retrieve the community.");
 
-  await Promise.all([
-    User.updateOne(
-      { _id: user._id },
-      { $addToSet: { communities: community._id } }
-    ),
-    Community.updateOne(
-      { _id: community._id },
-      { $addToSet: { members: user._id } }
-    ),
-  ]);
+  if (user) {
+    await Promise.all([
+      User.updateOne(
+        { _id: user._id },
+        { $addToSet: { communities: community._id } }
+      ),
+      Community.updateOne(
+        { _id: community._id },
+        { $addToSet: { members: user._id } }
+      ),
+    ]);
+  }
 
   return community;
 }
@@ -62,11 +65,11 @@ export async function addMemberToCommunity(communityId: string, memberId: string
   await Promise.all([
     Community.updateOne(
       { _id: community._id },
-      { $addToSet: { members: user._id }, $pull: { invitations: user._id } }
+      { $addToSet: { members: user._id } }
     ),
     User.updateOne(
       { _id: user._id },
-      { $addToSet: { communities: community._id }, $pull: { invitedTo: community._id } }
+      { $addToSet: { communities: community._id } }
     ),
   ]);
 
@@ -87,11 +90,11 @@ export async function removeUserFromCommunity(userId: string, communityId: strin
   await Promise.all([
     Community.updateOne(
       { _id: community._id },
-      { $pull: { members: user._id, invitations: user._id } }
+      { $pull: { members: user._id } }
     ),
     User.updateOne(
       { _id: user._id },
-      { $pull: { communities: community._id, invitedTo: community._id } }
+      { $pull: { communities: community._id } }
     ),
   ]);
 
@@ -155,7 +158,6 @@ export async function deleteCommunity(communityId: string) {
     {
       $pull: {
         communities: community._id,
-        invitedTo: community._id,
         threads: { $in: threadObjectIds },
         likedThreads: { $in: threadObjectIds },
         myLikedThreads: { $in: threadObjectIds },

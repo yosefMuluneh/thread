@@ -2,9 +2,11 @@
 import { currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { fetchTaggedInThreads, fetchUser, fetchUserThreads } from '@/lib/actions/user.actions'
+import { getAuthenticatedUser } from '@/lib/auth'
 import ProfileHeader from '@/components/shared/ProfileHeader'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import Image from 'next/image'
+import Link from 'next/link'
 import ThreadsTab from '@/components/shared/ThreadsTab'
 import { profileTabs } from '@/constants'
 import Comment from '@/components/forms/Comment'
@@ -27,6 +29,11 @@ const page = async ({ params } : { params: Promise<{ id: string }> }) => {
 
 
 
+    const authenticatedUser = await getAuthenticatedUser()
+    const isFollowing = (userInfo.followers ?? []).some(
+        (follower: any) => follower.toString() === authenticatedUser._id.toString()
+    )
+
     const threads = await fetchUserThreads(userInfo.id)
 
     //check if each thread inside threads has children
@@ -44,7 +51,8 @@ const page = async ({ params } : { params: Promise<{ id: string }> }) => {
             name={userInfo.name}
             username={userInfo.username}
             imgUrl={userInfo.image}
-            bio={userInfo.bio} />
+            bio={userInfo.bio}
+            following={isFollowing} />
 
         <div className='mt-9'>
             <Tabs defaultValue='threads' className='w-full'>
@@ -70,9 +78,43 @@ const page = async ({ params } : { params: Promise<{ id: string }> }) => {
                             </TabsTrigger>
                         ))
                     }
+                    <TabsTrigger value='following' className='tab'>
+                        <p>Following</p>
+                        <p className='ml-1 rounded-sm bg-light-4 px-2 py-1 !item-tiny-medium text-light-2'>
+                            {userInfo.following?.length ?? 0}
+                        </p>
+                    </TabsTrigger>
                 </TabsList>
-                
-                    
+
+                <TabsContent value='following' className='w-full text-light-1'>
+                    <section className='mt-9 flex flex-col gap-5'>
+                        {!userInfo.following?.length ? (
+                            <p className='text-center text-gray-1'>Not following anyone yet</p>
+                        ) : (
+                            userInfo.following.map((person: any) => (
+                                <div key={person.id} className='rounded-md border border-dark-4 p-3'>
+                                    <div className='flex items-center gap-3'>
+                                        <Image
+                                            src={person.image}
+                                            alt={person.name}
+                                            width={48}
+                                            height={48}
+                                            className='rounded-full object-cover'
+                                        />
+                                        <div className='flex flex-col'>
+                                            <p className='text-base-semibold text-light-1'>{person.name}</p>
+                                            <p className='text-small-regular text-gray-1'>@{person.username}</p>
+                                        </div>
+                                        <Link href={`/profile/${person.id}`} className='ml-auto text-small-semibold text-blue'>
+                                            View profile
+                                        </Link>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </section>
+                </TabsContent>
+
                 <TabsContent  value='threads' className='w-full text-light-1'>
                 {
                 threads.threads.reverse().length === 0 ? 

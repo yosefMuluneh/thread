@@ -12,6 +12,61 @@ import { connectToDB } from "../mongoose";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { userValidation } from "@/lib/validations/user";
 
+export async function toggleFollowUser(targetUserId: string): Promise<{ following: boolean }> {
+  try {
+    const authenticatedUser = await getAuthenticatedUser();
+
+    if (!targetUserId || !targetUserId.trim()) {
+      throw new Error("A valid profile is required.");
+    }
+
+    const targetUser = await User.findOne({ id: targetUserId.trim() });
+    if (!targetUser) {
+      throw new Error("User not found.");
+    }
+
+    if (authenticatedUser._id.equals(targetUser._id)) {
+      throw new Error("You cannot follow yourself.");
+    }
+
+    const isFollowing = (authenticatedUser.following ?? []).some(
+      (id: mongoose.Types.ObjectId) => id.toString() === targetUser._id.toString()
+    );
+
+    if (isFollowing) {
+      await Promise.all([
+        User.updateOne(
+          { _id: authenticatedUser._id },
+          { $pull: { following: targetUser._id } }
+        ),
+        User.updateOne(
+          { _id: targetUser._id },
+          { $pull: { followers: authenticatedUser._id } }
+        ),
+      ]);
+    } else {
+      await Promise.all([
+        User.updateOne(
+          { _id: authenticatedUser._id },
+          { $addToSet: { following: targetUser._id } }
+        ),
+        User.updateOne(
+          { _id: targetUser._id },
+          { $addToSet: { followers: authenticatedUser._id } }
+        ),
+      ]);
+    }
+
+    revalidatePath(`/profile/${targetUser.id}`);
+    revalidatePath(`/profile/${authenticatedUser.id}`);
+
+    return { following: !isFollowing };
+  } catch (error) {
+    console.error("Error updating follow relationship:", error);
+    throw error;
+  }
+}
+
 export async function fetchUser(userId: string) {
   try {
     if (!userId || !userId.trim()) return null;
@@ -22,10 +77,17 @@ export async function fetchUser(userId: string) {
     const identifier = userId.trim();
     return await User.findOne({
       $or: [{ id: identifier }, { username: identifier.toLowerCase() }],
-    }).populate({
-      path: "communities",
-      model: Community,
-    });
+    }).populate([
+      {
+        path: "communities",
+        model: Community,
+      },
+      {
+        path: "following",
+        model: User,
+        select: "id name username image",
+      },
+    ]);
   } catch (error: any) {
     throw new Error(`Failed to fetch user: ${error.message}`);
   }
@@ -157,6 +219,78 @@ export async function fetchTaggedInThreads(taggedIn: string[]) {
 }
 
 // Almost similar to Thead (search + pagination) and Community (search + pagination)
+export async function searchEntities({
+  entity,
+  searchString,
+  userId,
+  pageNumber = 1,
+}: {
+  entity: "user" | "community" | "topic";
+  searchString: string;
+  userId: string;
+  pageNumber?: number;
+}) {
+  const authenticatedUser = await getAuthenticatedUser();
+  if (authenticatedUser.id !== userId) {
+    throw new Error("You are not allowed to perform this search.");
+  }
+
+  await connectToDB();
+  const term = searchString.trim().split("").map((character) =>
+    ".*+?^$()|[]{}\\".includes(character) ? "\\" + character : character
+  ).join("");
+  const regex = new RegExp(term, "i");
+  const pageSize = 25;
+  const skipAmount = (Math.max(1, pageNumber) - 1) * pageSize;
+
+  if (entity === "user") {
+    const query: any = { id: { $ne: userId } };
+    if (term) query.$or = [{ name: regex }, { username: regex }];
+    const [users, total] = await Promise.all([
+      User.find(query).sort({ createdAt: "desc" }).skip(skipAmount).limit(pageSize).lean(),
+      User.countDocuments(query),
+    ]);
+    return {
+      results: JSON.parse(JSON.stringify(users)),
+      isNext: total > skipAmount + users.length,
+    };
+  }
+
+  if (entity === "community") {
+    const query: any = term ? { $or: [{ name: regex }, { username: regex }] } : {};
+    const [communities, total] = await Promise.all([
+      Community.find(query)
+        .sort({ createdAt: "desc" })
+        .skip(skipAmount)
+        .limit(pageSize)
+        .populate({ path: "members", model: User, select: "name username image id" })
+        .lean(),
+      Community.countDocuments(query),
+    ]);
+    return {
+      results: JSON.parse(JSON.stringify(communities)),
+      isNext: total > skipAmount + communities.length,
+    };
+  }
+
+  const query: any = term
+    ? { $or: [{ topics: regex }, { text: regex }] }
+    : { topics: { $exists: true, $ne: [] } };
+  const [topics, total] = await Promise.all([
+    Thread.find(query)
+      .sort({ createdAt: "desc" })
+      .skip(skipAmount)
+      .limit(pageSize)
+      .populate({ path: "author", model: User, select: "name username image id" })
+      .lean(),
+    Thread.countDocuments(query),
+  ]);
+  return {
+    results: JSON.parse(JSON.stringify(topics)),
+    isNext: total > skipAmount + topics.length,
+  };
+}
+
 export async function fetchUsers({
   userId,
   searchString = "",
@@ -265,22 +399,21 @@ export async function getActivities(userId: string) {
       select: 'name image _id username',
     })
 
-    const myLikedThreads = await User.findOne(
-      { id: userId },
-      { likedThreads: 1}
-    ).populate({
-      path: 'likedThreads',
-      model: Thread,
-      populate: {
-        path: 'author',
-        model: User,
-        select: 'name image _id username',
-      }
+    const likedThreadsReceived = await Thread.find({
+      author: userObjectId._id,
+      likedBy: { $exists: true, $ne: [] },
     })
+      .sort({ createdAt: "desc" })
+      .populate({
+        path: "likedBy",
+        model: User,
+        select: "name image _id username id",
+      });
+
     return {
       replies,
       repostedIn,
-      myLikedThreads: myLikedThreads?.likedThreads ?? [],
+      likedThreadsReceived,
     };
   } catch (error) {
     console.error("Error fetching replies: ", error);

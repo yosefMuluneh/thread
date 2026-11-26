@@ -1,6 +1,7 @@
 "use server";
 
 import { FilterQuery, SortOrder } from "mongoose";
+import { revalidatePath } from "next/cache";
 
 import Community from "../models/community.model";
 import Thread from "../models/thread.model";
@@ -8,6 +9,7 @@ import User from "../models/user.model";
 
 import { connectToDB } from "../mongoose";
 import { getAuthenticatedUser } from "@/lib/auth";
+import { clerkClient } from "@clerk/nextjs/server";
 
 
 export async function fetchCommunityDetails(id: string) {
@@ -21,6 +23,11 @@ export async function fetchCommunityDetails(id: string) {
         model: User,
         select: "name username image _id id",
       },
+      {
+        path: "joinRequests.user",
+        model: User,
+        select: "name username image _id id",
+      },
     ]);
 
     return communityDetails;
@@ -29,6 +36,74 @@ export async function fetchCommunityDetails(id: string) {
     console.error("Error fetching community details:", error);
     throw error;
   }
+}
+
+export async function fetchMyCommunities() {
+  const authenticatedUser = await getAuthenticatedUser();
+  const clerk = await clerkClient();
+
+  // Clerk is the source of truth for organization membership. Reconcile the
+  // current user's memberships before reading the local community cards so
+  // newly created/joined organizations appear even if a webhook is delayed.
+  const { data: memberships } =
+    await clerk.users.getOrganizationMembershipList({
+      userId: authenticatedUser.id,
+      limit: 500,
+    });
+
+  for (const membership of memberships) {
+    const organization = membership.organization;
+    const community = await Community.findOneAndUpdate(
+      { id: organization.id },
+      {
+        $set: {
+          name: organization.name,
+          username: organization.slug || organization.id,
+          image: organization.imageUrl || "",
+        },
+        $setOnInsert: { bio: "" },
+      },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+
+    if (!community) continue;
+
+    // Recover the real creator from Clerk if the organization webhook arrived
+    // before that creator's local profile was available.
+    if (!community.createdBy && organization.createdBy) {
+      const creator = await User.findOne({ id: organization.createdBy }).select("_id");
+      if (creator) {
+        await Community.updateOne(
+          { _id: community._id, createdBy: { $exists: false } },
+          { $set: { createdBy: creator._id } }
+        );
+      }
+    }
+
+    await Promise.all([
+      Community.updateOne(
+        { _id: community._id },
+        { $addToSet: { members: authenticatedUser._id } }
+      ),
+      User.updateOne(
+        { _id: authenticatedUser._id },
+        { $addToSet: { communities: community._id } }
+      ),
+    ]);
+  }
+
+  const communities = await Community.find({
+    $or: [
+      { _id: { $in: authenticatedUser.communities ?? [] } },
+      { members: authenticatedUser._id },
+      { createdBy: authenticatedUser._id },
+    ],
+  })
+    .sort({ _id: "desc" })
+    .populate({ path: "members", model: User, select: "name username image id" })
+    .lean();
+
+  return JSON.parse(JSON.stringify(communities));
 }
 
 export async function fetchCommunityPosts(id: string) {
@@ -124,56 +199,492 @@ export async function fetchCommunities({
   }
 }
 
-export async function sendInvitationToUser(
+async function getCommunityAdminContext(communityId: string) {
+  const user = await getAuthenticatedUser();
+  const community = await Community.findOne({ id: communityId });
+  if (!community) throw new Error("Community not found.");
+
+  const clerk = await clerkClient();
+  const { data: memberships } = await clerk.users.getOrganizationMembershipList({
+    userId: user.id,
+    limit: 500,
+  });
+  const membership = memberships.find(
+    (item) => item.organization.id === community.id
+  );
+  const isCreator =
+    community.createdBy?.toString() === user._id.toString();
+  const isClerkAdmin = membership?.role === "org:admin";
+
+  if (!isCreator && !isClerkAdmin) {
+    throw new Error("Only the community owner or an admin can manage invitations and requests.");
+  }
+
+  return { user, community, clerk };
+}
+
+export async function searchCommunityInviteCandidates(
   communityId: string,
-  userId: string
+  searchString: string
 ) {
-  try {
-    const authenticatedUser = await getAuthenticatedUser();
+  const { user, community } = await getCommunityAdminContext(communityId);
+  await connectToDB();
 
-    // Find the community by its unique id
-    const community = await Community.findOne({ id: communityId });
+  const term = searchString.trim().split("").map((character) =>
+    ".*+?^$()|[]{}\\".includes(character) ? "\\" + character : character
+  ).join("");
+  if (term.length < 2) return [];
 
-    if (!community) {
-      throw new Error("Community not found");
+  const excludedIds = [
+    user._id,
+    ...(community.members ?? []),
+    ...(community.invitations ?? []).map((invitation: any) => invitation.user),
+  ].filter(Boolean);
+
+  const candidates = await User.find({
+    _id: { $nin: excludedIds },
+    $or: [
+      { username: { $regex: term, $options: "i" } },
+      { name: { $regex: term, $options: "i" } },
+    ],
+  })
+    .select("id name username image")
+    .sort({ name: 1 })
+    .limit(12)
+    .lean();
+
+  return candidates.map((candidate: any) => ({
+    id: String(candidate.id),
+    name: String(candidate.name ?? ""),
+    username: String(candidate.username ?? ""),
+    image: String(candidate.image ?? ""),
+  }));
+}
+
+export async function sendInvitationsToUsers(
+  communityId: string,
+  inviteeUserIds: string[]
+) {
+  const { user, community, clerk } = await getCommunityAdminContext(communityId);
+  const uniqueIds = [...new Set(inviteeUserIds.filter((id) => typeof id === "string" && id.trim()))];
+  if (uniqueIds.length === 0) throw new Error("Select at least one person to invite.");
+
+  const invitees = await User.find({ id: { $in: uniqueIds } });
+  if (invitees.length !== uniqueIds.length) {
+    throw new Error("One or more selected users could not be found. Refresh the list and try again.");
+  }
+
+  const alreadyInvitedIds = new Set(
+    (community.invitations ?? []).map((invitation: any) => invitation.user?.toString())
+  );
+  const communityMemberIds = new Set(
+    (community.members ?? []).map((member: any) => member.toString())
+  );
+
+  const eligibleInvitees = [];
+  for (const invitee of invitees) {
+    if (invitee._id.equals(user._id)) continue;
+    if (alreadyInvitedIds.has(invitee._id.toString())) continue;
+    if (communityMemberIds.has(invitee._id.toString())) continue;
+
+    const { data: memberships } = await clerk.users.getOrganizationMembershipList({
+      userId: invitee.id,
+      limit: 500,
+    });
+    if (!memberships.some((membership) => membership.organization.id === community.id)) {
+      eligibleInvitees.push(invitee);
     }
+  }
 
-    if (authenticatedUser.id === userId) {
-      throw new Error("You cannot invite yourself.");
-    }
-    const isAuthorizedInviter =
-      community.createdBy?.toString() === authenticatedUser._id.toString() ||
-      community.members.some((member: any) => member.toString() === authenticatedUser._id.toString());
-    if (!isAuthorizedInviter) {
-      throw new Error("Only community members can invite users.");
-    }
+  if (eligibleInvitees.length === 0) {
+    throw new Error("None of the selected users can be invited. They may already be members or have pending invitations.");
+  }
 
-    // Resolve the invitee separately from the authenticated inviter.
-    const user = await User.findOne({ id: userId });
+  await Promise.all(
+    eligibleInvitees.map(async (invitee) => {
+      await Promise.all([
+        Community.updateOne(
+          { _id: community._id },
+          {
+            $push: {
+              invitations: {
+                user: invitee._id,
+                invitedBy: user._id,
+                createdAt: new Date(),
+              },
+            },
+            $pull: { joinRequests: { user: invitee._id } },
+          }
+        ),
+        User.updateOne(
+          { _id: invitee._id },
+          { $addToSet: { invitedTo: community._id } }
+        ),
+      ]);
+    })
+  );
 
-    if (!user) {
-      throw new Error("User not found");
-    }
+  revalidatePath("/communities");
+  revalidatePath(`/communities/${community.id}`);
+  return {
+    success: true,
+    invitedCount: eligibleInvitees.length,
+    invitedUsernames: eligibleInvitees.map((invitee) => invitee.username),
+  };
+}
 
-    // Check if the user is already a member of the community
-    const alreadyMember = community.members.some(
-      (member: any) => member.toString() === user._id.toString()
+export async function fetchMyCommunityInvitations() {
+  const user = await getAuthenticatedUser();
+  const invitations = await Community.find({ "invitations.user": user._id })
+    .populate("createdBy", "name username image id")
+    .populate("invitations.invitedBy", "name username image id")
+    .lean();
+
+  return invitations.map((community: any) => {
+    const invitation = (community.invitations ?? []).find(
+      (item: any) => item.user?.toString() === user._id.toString()
     );
-    if (alreadyMember) throw new Error("User is already a member of the community");
+    const inviter = invitation?.invitedBy;
+    return {
+      id: String(community.id),
+      name: String(community.name ?? ""),
+      username: String(community.username ?? ""),
+      image: String(community.image ?? ""),
+      bio: String(community.bio ?? ""),
+      invitedBy: inviter
+        ? {
+            id: String(inviter.id ?? ""),
+            name: String(inviter.name ?? ""),
+            username: String(inviter.username ?? ""),
+            image: String(inviter.image ?? ""),
+          }
+        : null,
+      createdAt: invitation?.createdAt ? new Date(invitation.createdAt).toISOString() : null,
+    };
+  });
+}
 
+export async function respondToCommunityInvitation(
+  communityId: string,
+  response: "accept" | "decline"
+) {
+  const user = await getAuthenticatedUser();
+  const community = await Community.findOne({
+    id: communityId,
+    "invitations.user": user._id,
+  });
+  if (!community) throw new Error("This invitation is no longer pending.");
+
+  if (response === "accept") {
+    const clerk = await clerkClient();
+    const { data: memberships } = await clerk.users.getOrganizationMembershipList({
+      userId: user.id,
+      limit: 500,
+    });
+    const alreadyMember = memberships.some(
+      (item) => item.organization.id === community.id
+    );
+
+    if (!alreadyMember) {
+      await clerk.organizations.createOrganizationMembership({
+        organizationId: community.id,
+        userId: user.id,
+        role: "org:member",
+      });
+    }
+
+    await Promise.all([
+      Community.updateOne(
+        { _id: community._id },
+        {
+          $addToSet: { members: user._id },
+          $pull: {
+            invitations: { user: user._id },
+            joinRequests: { user: user._id },
+          },
+        }
+      ),
+      User.updateOne(
+        { _id: user._id },
+        {
+          $addToSet: { communities: community._id },
+          $pull: { invitedTo: community._id },
+        }
+      ),
+    ]);
+  } else {
+    await Promise.all([
+      Community.updateOne(
+        { _id: community._id },
+        { $pull: { invitations: { user: user._id } } }
+      ),
+      User.updateOne(
+        { _id: user._id },
+        { $pull: { invitedTo: community._id } }
+      ),
+    ]);
+  }
+
+  revalidatePath("/communities");
+  revalidatePath(`/communities/${community.id}`);
+  return { success: true };
+}
+
+export async function requestCommunityMembership(communityId: string) {
+  const user = await getAuthenticatedUser();
+  const community = await Community.findOne({ id: communityId });
+  if (!community) throw new Error("Community not found.");
+  if (!community.requiresApproval) {
+    throw new Error("This community allows direct joining. Use Join instead.");
+  }
+
+  const clerk = await clerkClient();
+  const { data: memberships } = await clerk.users.getOrganizationMembershipList({
+    userId: user.id,
+    limit: 500,
+  });
+  const isClerkMember = memberships.some(
+    (membership) => membership.organization.id === community.id
+  );
+
+  if (isClerkMember) {
+    await Promise.all([
+      Community.updateOne(
+        { _id: community._id },
+        { $addToSet: { members: user._id } }
+      ),
+      User.updateOne(
+        { _id: user._id },
+        { $addToSet: { communities: community._id } }
+      ),
+    ]);
+    return { requested: false, joined: true };
+  }
+
+  await Promise.all([
+    Community.updateOne(
+      { _id: community._id },
+      { $pull: { members: user._id } }
+    ),
+    User.updateOne(
+      { _id: user._id },
+      { $pull: { communities: community._id } }
+    ),
+  ]);
+
+  const hasInvitation = (community.invitations ?? []).some(
+    (item: any) => item.user?.toString() === user._id.toString()
+  );
+  if (hasInvitation) {
+    throw new Error("You already have an invitation. Accept it from My Communities.");
+  }
+
+  const hasRequest = (community.joinRequests ?? []).some(
+    (item: any) => item.user?.toString() === user._id.toString()
+  );
+  if (hasRequest) return { requested: true, joined: false };
+
+  await Community.updateOne(
+    { _id: community._id },
+    { $push: { joinRequests: { user: user._id, requestedAt: new Date() } } }
+  );
+
+  revalidatePath(`/communities/${community.id}`);
+  return { requested: true, joined: false };
+}
+
+export async function fetchCommunityAdminData(communityId: string) {
+  const { community } = await getCommunityAdminContext(communityId);
+  const populated = (await Community.findById(community._id)
+    .populate("joinRequests.user", "name username image id")
+    .populate("invitations.user", "name username image id")
+    .populate("invitations.invitedBy", "name username image id")
+    .lean()) as {
+      joinRequests?: unknown[];
+      invitations?: unknown[];
+      requiresApproval?: boolean;
+    } | null;
+
+  return {
+    requests: JSON.parse(JSON.stringify(populated?.joinRequests ?? [])),
+    invitations: JSON.parse(JSON.stringify(populated?.invitations ?? [])),
+    requiresApproval: Boolean(populated?.requiresApproval),
+  };
+}
+
+export async function updateCommunityJoinPolicy(
+  communityId: string,
+  requiresApproval: boolean
+) {
+  const { community } = await getCommunityAdminContext(communityId);
+  await Community.updateOne(
+    { _id: community._id },
+    { $set: { requiresApproval: Boolean(requiresApproval) } }
+  );
+  revalidatePath(`/communities/${community.id}`);
+  revalidatePath("/communities");
+  return { requiresApproval: Boolean(requiresApproval) };
+}
+
+export async function reviewCommunityJoinRequest(
+  communityId: string,
+  userId: string,
+  decision: "approve" | "reject"
+) {
+  const { community, clerk } = await getCommunityAdminContext(communityId);
+  const requestedUser = await User.findOne({ id: userId });
+  if (!requestedUser) throw new Error("Requesting user was not found.");
+
+  const hasRequest = (community.joinRequests ?? []).some(
+    (item: any) => item.user?.toString() === requestedUser._id.toString()
+  );
+  if (!hasRequest) throw new Error("This join request is no longer pending.");
+
+  if (decision === "approve") {
+    const { data: memberships } = await clerk.users.getOrganizationMembershipList({
+      userId: requestedUser.id,
+      limit: 500,
+    });
+    const alreadyMember = memberships.some(
+      (item) => item.organization.id === community.id
+    );
+    if (!alreadyMember) {
+      await clerk.organizations.createOrganizationMembership({
+        organizationId: community.id,
+        userId: requestedUser.id,
+        role: "org:member",
+      });
+    }
+
+    await Promise.all([
+      Community.updateOne(
+        { _id: community._id },
+        {
+          $addToSet: { members: requestedUser._id },
+          $pull: { joinRequests: { user: requestedUser._id } },
+        }
+      ),
+      User.updateOne(
+        { _id: requestedUser._id },
+        { $addToSet: { communities: community._id } }
+      ),
+    ]);
+  } else {
     await Community.updateOne(
       { _id: community._id },
-      { $addToSet: { invitations: user._id } }
+      { $pull: { joinRequests: { user: requestedUser._id } } }
     );
-    await User.updateOne(
-      { _id: user._id },
-      { $addToSet: { invitedTo: community._id } }
-    );
-
-    return community;
-  } catch (error) {
-    // Handle any errors
-    console.error("Error sending invitation to community:", error);
-    throw error;
   }
+
+  revalidatePath(`/communities/${community.id}`);
+  revalidatePath("/communities");
+  return { success: true };
+}
+
+export async function toggleCommunityMembership(
+  communityId: string
+): Promise<{ joined: boolean; requested: boolean }> {
+  const user = await getAuthenticatedUser();
+  const community = await Community.findOne({ id: communityId });
+  if (!community) throw new Error("Community not found.");
+
+  const isCreator =
+    community.createdBy?.toString() === user._id.toString();
+  if (isCreator) {
+    throw new Error("The community owner cannot leave their own community.");
+  }
+
+  const clerk = await clerkClient();
+  const { data: memberships } = await clerk.users.getOrganizationMembershipList({
+    userId: user.id,
+    limit: 500,
+  });
+  const isClerkMember = memberships.some(
+    (membership) => membership.organization.id === community.id
+  );
+
+  if (isClerkMember) {
+    await clerk.organizations.deleteOrganizationMembership({
+      organizationId: community.id,
+      userId: user.id,
+    });
+
+    await Promise.all([
+      Community.updateOne(
+        { _id: community._id },
+        { $pull: { members: user._id } }
+      ),
+      User.updateOne(
+        { _id: user._id },
+        { $pull: { communities: community._id } }
+      ),
+    ]);
+
+    revalidatePath(`/communities/${community.id}`);
+    revalidatePath("/communities");
+    return { joined: false, requested: false };
+  }
+
+  if (community.requiresApproval) {
+    const result = await requestCommunityMembership(communityId);
+    return { joined: result.joined, requested: result.requested };
+  }
+
+  await clerk.organizations.createOrganizationMembership({
+    organizationId: community.id,
+    userId: user.id,
+    role: "org:member",
+  });
+
+  await Promise.all([
+    Community.updateOne(
+      { _id: community._id },
+      { $addToSet: { members: user._id } }
+    ),
+    User.updateOne(
+      { _id: user._id },
+      { $addToSet: { communities: community._id } }
+    ),
+  ]);
+
+  revalidatePath(`/communities/${community.id}`);
+  revalidatePath("/communities");
+  return { joined: true, requested: false };
+}
+
+export async function cancelCommunityInvitation(
+  communityId: string,
+  inviteeUserId: string
+) {
+  const { community } = await getCommunityAdminContext(communityId);
+  const invitee = await User.findOne({ id: inviteeUserId });
+  if (!invitee) throw new Error("Invited user was not found.");
+
+  await Promise.all([
+    Community.updateOne(
+      { _id: community._id },
+      { $pull: { invitations: { user: invitee._id } } }
+    ),
+    User.updateOne(
+      { _id: invitee._id },
+      { $pull: { invitedTo: community._id } }
+    ),
+  ]);
+
+  revalidatePath(`/communities/${community.id}`);
+  revalidatePath("/communities");
+  return { success: true };
+}
+
+export async function cancelCommunityJoinRequest(communityId: string) {
+  const user = await getAuthenticatedUser();
+  const community = await Community.findOne({ id: communityId });
+  if (!community) throw new Error("Community not found.");
+
+  await Community.updateOne(
+    { _id: community._id },
+    { $pull: { joinRequests: { user: user._id } } }
+  );
+  revalidatePath(`/communities/${community.id}`);
+  return { requested: false };
 }

@@ -15,7 +15,7 @@ import * as z from 'zod'
 import { Input } from '../ui/input'
 import { usePathname, useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { addComment, createThread } from '@/lib/actions/thread.actions'
+import { addComment } from '@/lib/actions/thread.actions'
 import Image from "next/image";
 
 
@@ -33,15 +33,16 @@ const Comment = ({threadId, currentUserImage, currentUserId}:Props) => {
                 }
     })
 
-    const onSubmit = async (value: z.infer<typeof CommentValidation>)=>{
-        await addComment(
-          threadId,
-          value.thread,
-          JSON.parse(currentUserId),
-          pathname,
-        )
-  
-        form.reset()
+    const onSubmit = async (value: z.infer<typeof CommentValidation>) => {
+        try {
+          await addComment(threadId, value.thread, currentUserId, pathname);
+          form.reset();
+        } catch (error) {
+          form.setError('thread', {
+            type: 'server',
+            message: error instanceof Error ? error.message : 'Unable to add comment. Please try again.',
+          });
+        }
       }
 
   return (
@@ -68,12 +69,12 @@ const Comment = ({threadId, currentUserImage, currentUserId}:Props) => {
               {...field}
               />
             </FormControl>
-            
+            <FormMessage />
           </FormItem>
         )}
       />
-      <Button type='submit' className='comment-form_btn'> 
-        Reply
+      <Button type='submit' className='comment-form_btn' disabled={form.formState.isSubmitting}> 
+        {form.formState.isSubmitting ? 'Replying...' : 'Reply'}
       </Button>
       </form>
       </Form>

@@ -318,7 +318,9 @@ export async function addComment(
     revalidatePath(path);
   } catch (err) {
     console.error("Error while adding comment:", err);
-    throw new Error("Unable to add comment");
+    throw new Error(
+      err instanceof Error ? err.message : "Unable to add comment. Please try again."
+    );
   }
 }
 

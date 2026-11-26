@@ -1,172 +1,173 @@
-'use client'
-import { Button } from "@/components/ui/button"
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-} from "@/components/ui/form"
-import { useForm } from 'react-hook-form';
-import {  SearchValidation } from '@/lib/validations/thread'
-import * as z from 'zod'
-import { Input } from '../ui/input'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useState } from "react";
-import UserCard from "../cards/UserCard";
-import ThreadCard from "../cards/ThreadCard";
-import CommunityCard from "../cards/CommunityCard";
-import Link from "next/link";
+"use client";
+
+import { useState, useTransition } from "react";
+import type { FormEvent } from "react";
 import Image from "next/image";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import UserCard from "../cards/UserCard";
+import CommunityCard from "../cards/CommunityCard";
+import { searchEntities } from "@/lib/actions/user.actions";
 
-
-interface Props{
-    users:any[],
-    communities:any[],
-    topics: any[],
-    userId: string
+interface Props {
+  users: any[];
+  communities: any[];
+  topics: any[];
+  userId: string;
 }
-const SearchPage = ({ users, communities, topics, userId} : Props) => {
-    const form = useForm({
-        resolver: zodResolver(SearchValidation),
-        defaultValues:{
-          entity: '',
-                }
-    })
 
+type SearchEntity = "user" | "topic" | "community";
 
-    const [fetchedUsers,setFetchedUsers] = useState(users)
-    const [fetchedCommunities, setFetchedCommunities] = useState(communities)
-    const [fetchedTopics, setFetchedTopics] = useState(topics)
+const SearchPage = ({ users, communities, topics, userId }: Props) => {
+  const [searchEntity, setSearchEntity] = useState<SearchEntity>("user");
+  const [searchString, setSearchString] = useState("");
+  const [fetchedUsers, setFetchedUsers] = useState(users);
+  const [fetchedCommunities, setFetchedCommunities] = useState(communities);
+  const [fetchedTopics, setFetchedTopics] = useState(topics);
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [pageNumber, setPageNumber] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
 
-    {console.log('topics------', topics)}
-
-    const [searchEntity,setSearchEntity] = useState('user')
-    const onSubmit =  (value: z.infer<typeof SearchValidation>)=>{
-        form.reset()
+  const runSearch = (nextPage: number, append: boolean) => {
+    setError(null);
+    startTransition(async () => {
+      try {
+        const response = await searchEntities({ entity: searchEntity, searchString, userId, pageNumber: nextPage });
+        const results = response.results;
+        if (searchEntity === "user") setFetchedUsers((current) => append ? [...current, ...results] : results);
+        if (searchEntity === "community") setFetchedCommunities((current) => append ? [...current, ...results] : results);
+        if (searchEntity === "topic") setFetchedTopics((current) => append ? [...current, ...results] : results);
+        setPageNumber(nextPage);
+        setHasMore(response.isNext);
+        setHasSearched(true);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Search failed. Please try again.");
       }
+    });
+  };
 
-    const fetchSearchEntity =  (searchString:string,) => {
+  const handleSearch = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    runSearch(1, false);
+  };
 
-        if(searchEntity === 'user'){
-            // set users based on the searchString which is the name or username of the user
-            setFetchedUsers(users.filter((user)=>user.name.includes(searchString) || user.username.includes(searchString)))
-        }
-        else if(searchEntity === 'community'){
-          {console.log('communities here==',communities)}
-            // set communities based on the searchString which is the name or username of the community
-            setFetchedCommunities(communities.filter((community)=>community.name.includes(searchString) || community.username.includes(searchString)))
-        }
-        else if(searchEntity === 'topic'){
-          {console.log('topics here==',topics)}
-            // set topics based on the searchString which is the text of the topic
-            setFetchedTopics(topics.filter((topic)=>topic.text.includes(searchString)))
-        }
+  const changeEntity = (entity: SearchEntity) => {
+    setSearchEntity(entity);
+    setError(null);
+    setHasSearched(false);
+    setPageNumber(1);
+    setHasMore(false);
+  };
 
-    }
+  const resultCount =
+    searchEntity === "user"
+      ? fetchedUsers.length
+      : searchEntity === "community"
+        ? fetchedCommunities.length
+        : fetchedTopics.length;
 
   return (
-    <section className="flex flex-col gap-9 ">
-
-    <Form {...form}>
-    <form onSubmit={form.handleSubmit(onSubmit)} onChange={()=>fetchSearchEntity(form.getValues().entity)}
-    className="flex flex-col justify-center pb-3 gap-3 sticky top-[85px] z-50 bg-black">
+    <section className="flex flex-col gap-9">
+      <form
+        onSubmit={handleSearch}
+        className="sticky top-[85px] z-50 flex flex-col justify-center gap-3 bg-black pb-3"
+      >
         <h1 className="text-heading2-bold text-light-1">Search</h1>
-
         <div className="search-form mt-0">
-
-      <FormField
-        control={form.control}
-        name="entity"
-        render={({ field }) => (
-          <FormItem className='flex items-center gap-3 w-full'> 
-            
-            <FormControl className='border-none bg-transparent'>
-              <Input
-              type="text"
-              placeholder={`Search ${searchEntity}`}
-              className="no-focus text-light-1 outline-none"
-              {...field}
-              />
-            </FormControl>
-            
-          </FormItem>
-        )}
-      />
-      <Button type='submit'  className='bg-primary-500'> 
-        Search
-      </Button>
+          <input
+            type="search"
+            value={searchString}
+            onChange={(event) => setSearchString(event.target.value)}
+            placeholder={`Search ${searchEntity}`}
+            aria-label={`Search ${searchEntity}`}
+            className="no-focus w-full border-none bg-transparent text-light-1 outline-none"
+          />
+          <Button type="submit" className="bg-primary-500" disabled={isPending}>
+            {isPending ? "Searching..." : "Search"}
+          </Button>
         </div>
-      <div className="flex items-center gap-5 ">
-        <Button type='button' onClick={()=>{setSearchEntity('user')}} className={`${searchEntity === 'user' && 'bg-primary-500'}`}>
-            User
-        </Button>
-        <Button type='button' onClick={()=>{setSearchEntity('topic')}} className={`${searchEntity === 'topic' && 'bg-primary-500'}`}>
-            Topic
-        </Button>
-        <Button type='button' onClick={()=>{setSearchEntity('community')}} className={`${searchEntity === 'community' && 'bg-primary-500'}`}>
-            Community
-        </Button>
-        
-      </div>
+        <div className="flex items-center gap-3">
+          {(["user", "topic", "community"] as SearchEntity[]).map((entity) => (
+            <Button
+              key={entity}
+              type="button"
+              onClick={() => changeEntity(entity)}
+              className={searchEntity === entity ? "bg-primary-500" : ""}
+              aria-pressed={searchEntity === entity}
+            >
+              {entity.charAt(0).toUpperCase() + entity.slice(1)}
+            </Button>
+          ))}
+        </div>
       </form>
-      </Form>
-      {
-       searchEntity === 'user' &&  fetchedUsers.map((person: any) => (
-            <UserCard
+
+      {error && <p role="alert" className="text-sm text-red-500">{error}</p>}
+      {!isPending && resultCount === 0 && (
+        <p className="no-result">
+          {hasSearched ? "No results found. Try another search." : "No results available."}
+        </p>
+      )}
+
+      {searchEntity === "user" &&
+        fetchedUsers.map((person: any) => (
+          <UserCard
             key={person.id}
             id={person.id}
             name={person.name}
             username={person.username}
             imgUrl={person.image}
-            personType="User" />
-        )
-    )}
-    {
-        searchEntity === 'community' && fetchedCommunities.map((community) => (
-            <div key={community.id} className='mb-5'>
-              <CommunityCard id={community.id} name={community.name} username={community.username} imgUrl={community.image} bio={community.bio} members={community.members}/>
-            </div>
-          ))
-    }
-    {
-        searchEntity === 'topic' && fetchedTopics.map((post)=>(
-          <Link key={post._id} href={`/thread/${post._id}`} className="bg-gray-900 px-2 py-5 rounded-md" >
-            <div className='flex w-full flex-1 flex-row gap-4'>
+            personType="User"
+          />
+        ))}
 
-            <div className='flex flex-col items-center'>
-                    <Link
-                    href={`/profile/${post.author.id}`}
-                    className='relative h-11 w-11'>
-                        <Image 
-                        src={post.author.image}
-                        alt='profile image'
-                        fill
-                        className='cursor-pointer rounded-full'/>
-                        </Link>
-                        <div className='thread-card_bar'/>
-                </div>
-                <div className='flex w-full flex-col'>
-                    <Link href={`/profile/${post.author.id}`} className='w-fit flex gap-2'>
-                        <h4 className='cursor-pointer text-base-semibold text-light-1'>
-                            {post.author.name}
-                        </h4>
-                        <h4 className='cursor-pointer  text-gray-1'>
-                            @{post.author.username}
-                        </h4>
-                    </Link>
-                        
-            <p className="text-white">{post.text}</p>
-                        
-                </div>
+      {searchEntity === "community" &&
+        fetchedCommunities.map((community: any) => (
+          <div key={community.id} className="mb-5">
+            <CommunityCard
+              id={community.id}
+              name={community.name}
+              username={community.username}
+              imgUrl={community.image}
+              bio={community.bio}
+              members={community.members ?? []}
+            />
+          </div>
+        ))}
+
+      {searchEntity === "topic" &&
+        fetchedTopics.map((topic: any) => (
+          <article key={topic._id} className="rounded-md bg-gray-900 px-4 py-5">
+            <div className="flex items-start gap-4">
+              <Link href={`/profile/${topic.author.id}`} className="relative h-11 w-11 shrink-0">
+                <Image
+                  src={topic.author.image}
+                  alt={topic.author.name}
+                  fill
+                  className="rounded-full object-cover"
+                />
+              </Link>
+              <div className="flex min-w-0 flex-1 flex-col gap-2">
+                <Link href={`/profile/${topic.author.id}`} className="w-fit text-base-semibold text-light-1">
+                  {topic.author.name} <span className="text-gray-1">@{topic.author.username}</span>
+                </Link>
+                <Link href={`/thread/${topic._id}`} className="text-small-regular text-light-2">
+                  {topic.text}
+                </Link>
+              </div>
             </div>
-            
-          </Link>
-          
-        ))
-    }
-    
+          </article>
+        ))}
+      {hasMore && (
+        <div className="flex justify-center">
+          <Button type="button" onClick={() => runSearch(pageNumber + 1, true)} disabled={isPending}>
+            {isPending ? "Loading..." : "Load more"}
+          </Button>
+        </div>
+      )}
     </section>
-  )
-}
+  );
+};
 
-export default SearchPage
+export default SearchPage;
