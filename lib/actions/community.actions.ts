@@ -32,6 +32,23 @@ export async function fetchCommunityDetails(id: string) {
   }
 }
 
+export async function fetchMyCommunities() {
+  const authenticatedUser = await getAuthenticatedUser();
+  await connectToDB();
+
+  const communities = await Community.find({
+    $or: [
+      { members: authenticatedUser._id },
+      { createdBy: authenticatedUser._id },
+    ],
+  })
+    .sort({ _id: "desc" })
+    .populate({ path: "members", model: User, select: "name username image id" })
+    .lean();
+
+  return JSON.parse(JSON.stringify(communities));
+}
+
 export async function fetchMyCommunityInvitations() {
   const authenticatedUser = await getAuthenticatedUser();
   const invitations = await Community.find({
