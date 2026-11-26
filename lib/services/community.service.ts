@@ -34,10 +34,16 @@ export async function createCommunity(
 
   if (!community) throw new Error("Unable to create or retrieve the community.");
 
-  await User.updateOne(
-    { _id: user._id },
-    { $addToSet: { communities: community._id } }
-  );
+  await Promise.all([
+    User.updateOne(
+      { _id: user._id },
+      { $addToSet: { communities: community._id } }
+    ),
+    Community.updateOne(
+      { _id: community._id },
+      { $addToSet: { members: user._id } }
+    ),
+  ]);
 
   return community;
 }
