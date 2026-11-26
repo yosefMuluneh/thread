@@ -27,12 +27,16 @@ const page = async ({
 
   if (!user) return null;
 
-  // Reconcile the current user's Clerk memberships before reading the community.
   await fetchMyCommunities();
   const communityDetail = await fetchCommunityDetails(routeParams.id);
   if (!communityDetail) return null;
 
-  let adminData: { requests: any[]; invitations: any[]; requiresApproval: boolean } | null = null;
+  let adminData: {
+    requests: any[];
+    invitations: any[];
+    requiresApproval: boolean;
+  } | null = null;
+
   try {
     adminData = await fetchCommunityAdminData(routeParams.id);
   } catch {
@@ -65,6 +69,7 @@ const page = async ({
         joined={isJoined}
         isCommunityCreator={isCreator}
         communityRequested={hasRequested}
+        requiresApproval={Boolean(communityDetail.requiresApproval)}
       />
 
       <div className="mt-9">
@@ -118,6 +123,7 @@ const page = async ({
                 communityId={communityDetail.id}
                 requests={adminData.requests}
                 invitations={adminData.invitations}
+                requiresApproval={adminData.requiresApproval}
               />
             </TabsContent>
           )}
