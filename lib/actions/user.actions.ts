@@ -14,9 +14,15 @@ import { userValidation } from "@/lib/validations/user";
 
 export async function fetchUser(userId: string) {
   try {
+    if (!userId || !userId.trim()) return null;
     await connectToDB();
 
-    return await User.findOne({ id: userId }).populate({
+    // Profile routes accept either a Clerk user ID or a public username.
+    // This also makes @username mentions resolve to the intended profile.
+    const identifier = userId.trim();
+    return await User.findOne({
+      $or: [{ id: identifier }, { username: identifier.toLowerCase() }],
+    }).populate({
       path: "communities",
       model: Community,
     });
