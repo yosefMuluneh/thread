@@ -12,6 +12,7 @@ import { communityTabs } from "@/constants";
 import {
   fetchCommunityDetails,
   fetchCommunityAdminData,
+  fetchMyCommunities,
 } from "@/lib/actions/community.actions";
 import CommunityAdminPanel from "@/components/shared/CommunityAdminPanel";
 import UserCard from "@/components/cards/UserCard";
@@ -26,7 +27,9 @@ const page = async ({
 
   if (!user) return null;
 
-  await fetchMyCommunities();\n  const communityDetail = await fetchCommunityDetails(routeParams.id);
+  // Reconcile the current user's Clerk memberships before reading the community.
+  await fetchMyCommunities();
+  const communityDetail = await fetchCommunityDetails(routeParams.id);
   if (!communityDetail) return null;
 
   let adminData: { requests: any[]; invitations: any[] } | null = null;
@@ -68,11 +71,7 @@ const page = async ({
         <Tabs defaultValue="threads" className="w-full">
           <TabsList className="tab">
             {visibleTabs.map((tab: any) => (
-              <TabsTrigger
-                key={tab.label}
-                value={tab.value}
-                className="tab"
-              >
+              <TabsTrigger key={tab.label} value={tab.value} className="tab">
                 <Image
                   src={tab.icon}
                   alt={tab.label}
