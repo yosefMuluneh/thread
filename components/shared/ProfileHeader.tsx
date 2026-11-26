@@ -11,6 +11,7 @@ interface Props {
   bio: string;
   type?: "User" | "Community";
   joined?: boolean;
+  isCommunityCreator?: boolean;
   following?: boolean;
 }
 
