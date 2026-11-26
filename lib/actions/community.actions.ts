@@ -223,7 +223,7 @@ async function getCommunityAdminContext(communityId: string) {
   return { user, community, clerk };
 }
 
-export async function export async function searchCommunityInviteCandidates(
+export async function searchCommunityInviteCandidates(
   communityId: string,
   searchString: string
 ) {
