@@ -11,7 +11,8 @@ interface Props {
   communityId: string;
   initialJoined: boolean;
   isCreator?: boolean;
-  initialRequested?: boolean;\n  requiresApproval?: boolean;
+  initialRequested?: boolean;
+  requiresApproval?: boolean;
 }
 
 export default function CommunityMembershipButton({
@@ -19,6 +20,7 @@ export default function CommunityMembershipButton({
   initialJoined,
   isCreator = false,
   initialRequested = false,
+  requiresApproval = false,
 }: Props) {
   const [joined, setJoined] = useState(initialJoined);
   const [requested, setRequested] = useState(initialRequested);
@@ -64,7 +66,9 @@ export default function CommunityMembershipButton({
               ? "Leave"
               : requested
                 ? "Cancel request"
-                : requiresApproval ? "Request to join" : "Join"}
+                : requiresApproval
+                  ? "Request to join"
+                  : "Join"}
       </Button>
       {error && (
         <p role="alert" className="max-w-48 text-right text-xs text-red-500">
