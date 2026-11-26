@@ -32,6 +32,8 @@ export async function createCommunity(
     { new: true, upsert: true, setDefaultsOnInsert: true }
   );
 
+  if (!community) throw new Error("Unable to create or retrieve the community.");
+
   await User.updateOne(
     { _id: user._id },
     { $addToSet: { communities: community._id } }
@@ -133,8 +135,14 @@ export async function deleteCommunity(communityId: string) {
   await Community.deleteOne({ _id: community._id });
   await Thread.deleteMany({ _id: { $in: threadObjectIds } });
   await Thread.updateMany(
-    { children: { $in: threadObjectIds } },
-    { $pull: { children: { $in: threadObjectIds } } }
+    {},
+    {
+      $pull: {
+        children: { $in: threadObjectIds },
+        repost: { $in: threadObjectIds },
+        repostedIn: { $in: threadObjectIds },
+      },
+    }
   );
   await User.updateMany(
     {},
