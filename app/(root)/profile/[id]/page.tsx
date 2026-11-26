@@ -6,6 +6,7 @@ import { getAuthenticatedUser } from '@/lib/auth'
 import ProfileHeader from '@/components/shared/ProfileHeader'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import Image from 'next/image'
+import Link from 'next/link'
 import ThreadsTab from '@/components/shared/ThreadsTab'
 import { profileTabs } from '@/constants'
 import Comment from '@/components/forms/Comment'
@@ -104,9 +105,9 @@ const page = async ({ params } : { params: Promise<{ id: string }> }) => {
                                             <p className='text-base-semibold text-light-1'>{person.name}</p>
                                             <p className='text-small-regular text-gray-1'>@{person.username}</p>
                                         </div>
-                                        <a href={`/profile/${person.id}`} className='ml-auto text-small-semibold text-blue'>
+                                        <Link href={`/profile/${person.id}`} className='ml-auto text-small-semibold text-blue'>
                                             View profile
-                                        </a>
+                                        </Link>
                                     </div>
                                 </div>
                             ))
