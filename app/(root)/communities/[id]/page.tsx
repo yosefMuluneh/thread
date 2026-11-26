@@ -26,8 +26,8 @@ const page = async ({ params } : { params: Promise<{ id: string }> }) => {
             imgUrl={communityDetail.image}
             bio={communityDetail.bio}
             type='Community'
-            joined={communityDetail.members?.some((member: any) => member.id === user.id) || communityDetail.createdBy?.id === user.id}
-            isCommunityCreator={communityDetail.createdBy?.id === user.id} />
+            joined={communityDetail.members?.some((member: any) => member.id === user.id) || (communityDetail.createdBy as any)?.id === user.id}
+            isCommunityCreator={(communityDetail.createdBy as any)?.id === user.id} />
 
         <div className='mt-9'>
             <Tabs defaultValue='threads' className='w-full'>
