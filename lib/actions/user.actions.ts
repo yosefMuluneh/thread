@@ -219,6 +219,53 @@ export async function fetchTaggedInThreads(taggedIn: string[]) {
 }
 
 // Almost similar to Thead (search + pagination) and Community (search + pagination)
+export async function searchEntities({
+  entity,
+  searchString,
+  userId,
+}: {
+  entity: "user" | "community" | "topic";
+  searchString: string;
+  userId: string;
+}) {
+  const authenticatedUser = await getAuthenticatedUser();
+  if (authenticatedUser.id !== userId) {
+    throw new Error("You are not allowed to perform this search.");
+  }
+
+  await connectToDB();
+  const term = searchString.trim().replace(/[.*+?^$()|[\\]\\\\]/g, "\\export async function fetchUsers({");
+  const regex = new RegExp(term, "i");
+
+  if (entity === "user") {
+    const users = await User.find({
+      id: { $ne: userId },
+      ...(term ? { $or: [{ name: regex }, { username: regex }] } : {}),
+    }).sort({ createdAt: "desc" }).limit(25).lean();
+    return JSON.parse(JSON.stringify(users));
+  }
+
+  if (entity === "community") {
+    const communities = await Community.find(
+      term ? { $or: [{ name: regex }, { username: regex }] } : {}
+    )
+      .sort({ createdAt: "desc" })
+      .limit(25)
+      .populate({ path: "members", model: User, select: "name username image id" })
+      .lean();
+    return JSON.parse(JSON.stringify(communities));
+  }
+
+  const topics = await Thread.find(
+    term ? { $or: [{ topics: regex }, { text: regex }] } : { topics: { $exists: true, $ne: [] } }
+  )
+    .sort({ createdAt: "desc" })
+    .limit(25)
+    .populate({ path: "author", model: User, select: "name username image id" })
+    .lean();
+  return JSON.parse(JSON.stringify(topics));
+}
+
 export async function fetchUsers({
   userId,
   searchString = "",
