@@ -9,8 +9,9 @@ import Comment from '@/components/forms/Comment'
 
 
 
-const page =  async({ params } : { params : { id : string}}) => {
-    if(!params.id) return null
+const page =  async({ params } : { params: Promise<{ id: string }> }) => {
+    const routeParams = await params;
+    if(!routeParams.id) return null
 
     const user = await currentUser()
 
@@ -19,7 +20,7 @@ const page =  async({ params } : { params : { id : string}}) => {
     const userInfo = await fetchUser(user.id)
     if(!userInfo?.onboarded) return redirect('/onboarding')
 
-    const thread = await fetchThreadById(params.id)
+    const thread = await fetchThreadById(routeParams.id)
 
 
   return (
