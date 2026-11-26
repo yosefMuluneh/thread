@@ -285,6 +285,7 @@ export async function sendInvitationToUser(
       { $addToSet: { invitedTo: community._id } }
     );
 
+    revalidatePath("/communities");
     return community;
   } catch (error) {
     // Handle any errors
