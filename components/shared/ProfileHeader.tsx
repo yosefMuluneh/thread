@@ -23,6 +23,7 @@ const ProfileHeader = ({
   bio,
   type = "User",
   joined = false,
+  isCommunityCreator = false,
   following = false,
 }: Props) => {
   const isOwnProfile = accountId === authUserId;
@@ -49,7 +50,7 @@ const ProfileHeader = ({
             {type === "User" ? (
               <FollowButton targetUserId={accountId} initialFollowing={following} />
             ) : (
-              <CommunityMembershipButton communityId={accountId} initialJoined={joined} />
+              <CommunityMembershipButton communityId={accountId} initialJoined={joined} isCreator={isCommunityCreator} />
             )}
           </div>
         )}
