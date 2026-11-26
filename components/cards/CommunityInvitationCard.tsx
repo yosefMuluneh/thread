@@ -51,7 +51,7 @@ export default function CommunityInvitationCard({ community }: Props) {
               size="sm"
               disabled={isPending}
               onClick={() => respond("accept")}
-              className="bg-primary-500 text-white hover:bg-primary-500/90"
+              className="!bg-primary-500 !text-white hover:!bg-primary-500/90"
             >
               {isPending ? "Please wait..." : "Accept"}
             </Button>
@@ -61,7 +61,7 @@ export default function CommunityInvitationCard({ community }: Props) {
               variant="outline"
               disabled={isPending}
               onClick={() => respond("decline")}
-              className="border border-dark-4 bg-dark-3 text-light-1 hover:bg-dark-4 hover:text-light-1"
+              className="!border-dark-4 !bg-dark-3 !text-light-1 hover:!bg-dark-4 hover:!text-light-1"
             >
               Decline
             </Button>
