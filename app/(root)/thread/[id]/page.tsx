@@ -37,7 +37,7 @@ const page =  async({ params } : { params: Promise<{ id: string }> }) => {
             createdAt={thread.createdAt}
             comments={thread.children}
             upvotes={thread.upvotes}
-            repost={thread?.repost}
+            repost={thread?.repost?.[0]?.toString()}
                 />
         </div>
         <div className='mt-7'>
