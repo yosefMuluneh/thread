@@ -9,8 +9,9 @@ import { fetchUser } from "@/lib/actions/user.actions";
 async function Home({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | undefined };
+  searchParams: Promise<{ [key: string]: string | undefined }>;
 }) {
+  const resolvedSearchParams = await searchParams;
   const user = await currentUser();
   if (!user) return redirect('/sign-in');
 
@@ -18,7 +19,7 @@ async function Home({
   if (!userInfo?.onboarded) redirect("/onboarding");
 
   const result = await fetchThreads(
-    searchParams.page ? +searchParams.page : 1,
+    resolvedSearchParams.page ? +resolvedSearchParams.page : 1,
     30
   );
   return (
