@@ -252,8 +252,8 @@ export default function CommunityAdminPanel({
                   <p className="text-xs text-gray-1">@{request.user.username}</p>
                 </div>
                 <div className="flex gap-2">
-                  <Button type="button" size="sm" disabled={isPending} onClick={() => review(request.user.id, "approve")} className="bg-primary-500 text-white hover:bg-primary-500/90">Approve</Button>
-                  <Button type="button" size="sm" variant="outline" disabled={isPending} onClick={() => review(request.user.id, "reject")} className="border border-dark-4 bg-dark-3 text-light-1 hover:bg-dark-4 hover:text-light-1">Reject</Button>
+                  <Button type="button" size="sm" disabled={isPending} onClick={() => review(request.user.id, "approve")} className="!bg-primary-500 !text-white hover:!bg-primary-500/90">Approve</Button>
+                  <Button type="button" size="sm" variant="outline" disabled={isPending} onClick={() => review(request.user.id, "reject")} className="!border-dark-4 !bg-dark-3 !text-light-1 hover:!bg-dark-4 hover:!text-light-1">Reject</Button>
                 </div>
               </div>
             ))}
@@ -279,7 +279,7 @@ export default function CommunityAdminPanel({
                   variant="outline"
                   disabled={isPending}
                   onClick={() => revoke(invitation.user.id)}
-                  className="border border-red-500/50 bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300"
+                  className="!border-red-500/50 !bg-red-500/10 !text-red-400 hover:!bg-red-500/20 hover:!text-red-300"
                 >
                   Cancel invitation
                 </Button>
