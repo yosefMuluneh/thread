@@ -516,3 +516,16 @@ export async function cancelCommunityInvitation(
   revalidatePath("/communities");
   return { success: true };
 }
+
+export async function cancelCommunityJoinRequest(communityId: string) {
+  const user = await getAuthenticatedUser();
+  const community = await Community.findOne({ id: communityId });
+  if (!community) throw new Error("Community not found.");
+
+  await Community.updateOne(
+    { _id: community._id },
+    { $pull: { joinRequests: { user: user._id } } }
+  );
+  revalidatePath(`/communities/${community.id}`);
+  return { requested: false };
+}
