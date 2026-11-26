@@ -34,22 +34,25 @@ const PostThread =  ({ userId }:{ userId : string}) => {
                 }
     })
     const onSubmit = async (value: z.infer<typeof ThreadValidation>) => {
-      // Extract tagged users (words starting with '@') and remove the '@'
-      const taggedUsers = value.thread.match(/@(\w+)/g)?.map((tag) => tag.substring(1)) || [];
-    
-      // Extract topics (words starting with '#') and remove the '#'
-      const topics = value.thread.match(/#(\w+)/g)?.map((tag) => tag.substring(1)) || [];
-    
-      await createThread({
-        author: userId,
-        communityId: organization ? organization.id : null,
-        path: pathname,
-        text: value.thread,
-        taggedUsers,  // Pass the extracted tagged users
-        topics        // Pass the extracted topics
-      });
-    
-      router.push('/');
+      try {
+        const taggedUsers = value.thread.match(/@(\\w+)/g)?.map((tag) => tag.substring(1)) || [];
+        const topics = value.thread.match(/#(\\w+)/g)?.map((tag) => tag.substring(1)) || [];
+        await createThread({
+          author: userId,
+          communityId: organization ? organization.id : null,
+          path: pathname,
+          text: value.thread,
+          taggedUsers,
+          topics,
+        });
+        form.reset();
+        router.push('/');
+      } catch (error) {
+        form.setError('thread', {
+          type: 'server',
+          message: error instanceof Error ? error.message : 'Unable to publish this thread. Please try again.',
+        });
+      }
     };
 
   return (
@@ -75,8 +78,8 @@ const PostThread =  ({ userId }:{ userId : string}) => {
           </FormItem>
         )}
       />
-      <Button type='submit' className='bg-primary-500'> 
-        Post Thread
+      <Button type='submit' className='bg-primary-500' disabled={form.formState.isSubmitting}> 
+        {form.formState.isSubmitting ? 'Publishing...' : 'Post Thread'}
       </Button>
       </form>
       </Form>
