@@ -21,6 +21,7 @@ const InteractionCard = ({
 
     const [likes, setLikes] = useState(upvotes)
     const [isLiking, setIsLiking] = useState(false)
+    const [shareMessage, setShareMessage] = useState("")
     const pathname = usePathname()
     const { likedThreadIds, setLiked, isLoading } = useLikeState()
     const hasLiked = likedThreadIds.has(id)
@@ -103,23 +104,29 @@ const InteractionCard = ({
               type="button"
               onClick={async () => {
                 const url = `${window.location.origin}/thread/${id}`;
-                const shareData = {
-                  title: "Thread",
-                  text: "Check out this thread",
-                  url,
-                };
+                setShareMessage("");
 
                 try {
                   if (typeof navigator.share === "function") {
-                    await navigator.share(shareData);
+                    await navigator.share({
+                      title: "Thread",
+                      text: "Check out this thread",
+                      url,
+                    });
                   } else if (navigator.clipboard?.writeText) {
                     await navigator.clipboard.writeText(url);
+                    setShareMessage("Link copied");
                   } else {
                     window.prompt("Copy this thread link:", url);
                   }
                 } catch (error) {
-                  if (error instanceof Error && error.name !== "AbortError") {
-                    console.error("Unable to share thread:", error);
+                  if (error instanceof Error && error.name === "AbortError") return;
+
+                  try {
+                    await navigator.clipboard.writeText(url);
+                    setShareMessage("Link copied");
+                  } catch (clipboardError) {
+                    console.error("Unable to share thread:", clipboardError);
                   }
                 }
               }}
@@ -135,6 +142,11 @@ const InteractionCard = ({
                 className='object-contain'
               />
             </button>
+            {shareMessage && (
+              <span role="status" className="text-xs text-gray-1">
+                {shareMessage}
+              </span>
+            )}   </button>
         </div>
                 
                         
