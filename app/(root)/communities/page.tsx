@@ -1,5 +1,6 @@
 import { currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
+import { fetchUser } from '@/lib/actions/user.actions'
 import { fetchMyCommunities, fetchMyCommunityInvitations, fetchCommunities } from '@/lib/actions/community.actions'
 import CommunityInvitationCard from '@/components/cards/CommunityInvitationCard'
 import CommunityTabs from '@/components/shared/CommunityTabs'
@@ -9,6 +10,11 @@ const page = async () => {
 
     if (!user) {
         redirect('/sign-in')
+    }
+
+    const userInfo = await fetchUser(user.id)
+    if (!userInfo?.onboarded) {
+        redirect('/onboarding')
     }
 
     const invitations = await fetchMyCommunityInvitations()
