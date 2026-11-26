@@ -42,7 +42,7 @@ async function Home({
                   community={post.community}
                   createdAt={post.createdAt}
                   comments={post.children}
-                  repost={post?.repost[0]}
+                  repost={post?.repost?.[0]?.toString()}
                   upvotes={post.upvotes}
                 />
                 
