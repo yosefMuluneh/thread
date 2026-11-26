@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import {
   cancelCommunityInvitation,
@@ -26,7 +26,7 @@ export default function CommunityAdminPanel({ communityId, requests, invitations
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
 
-  const invite = (event: React.FormEvent<HTMLFormElement>) => {
+  const invite = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
     setMessage("");
