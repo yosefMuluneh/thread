@@ -17,6 +17,15 @@ const communitySchema = new mongoose.Schema({
             ref: 'User'
         }
     ],
+    invitations: [{
+      user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+      invitedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+      createdAt: { type: Date, default: Date.now },
+    }],
+    joinRequests: [{
+      user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+      requestedAt: { type: Date, default: Date.now },
+    }],
     
   });
 
