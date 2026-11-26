@@ -99,12 +99,42 @@ const InteractionCard = ({
             height={24}
             className='cursor-pointer object-contain'/>
             </Link>
-            <Image
-            src='/assets/share.svg'
-            alt='share'
-            width={24}
-            height={24}
-            className='cursor-pointer object-contain'/>
+            <button
+              type="button"
+              onClick={async () => {
+                const url = `${window.location.origin}/thread/${id}`;
+                const shareData = {
+                  title: "Thread",
+                  text: "Check out this thread",
+                  url,
+                };
+
+                try {
+                  if (typeof navigator.share === "function") {
+                    await navigator.share(shareData);
+                  } else if (navigator.clipboard?.writeText) {
+                    await navigator.clipboard.writeText(url);
+                  } else {
+                    window.prompt("Copy this thread link:", url);
+                  }
+                } catch (error) {
+                  if (error instanceof Error && error.name !== "AbortError") {
+                    console.error("Unable to share thread:", error);
+                  }
+                }
+              }}
+              aria-label="Share thread"
+              title="Share thread"
+              className="cursor-pointer"
+            >
+              <Image
+                src='/assets/share.svg'
+                alt=''
+                width={24}
+                height={24}
+                className='object-contain'
+              />
+            </button>
         </div>
                 
                         
