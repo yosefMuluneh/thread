@@ -366,6 +366,9 @@ export async function requestCommunityMembership(communityId: string) {
   const user = await getAuthenticatedUser();
   const community = await Community.findOne({ id: communityId });
   if (!community) throw new Error("Community not found.");
+  if (!community.requiresApproval) {
+    throw new Error("This community allows direct joining. Use Join instead.");
+  }
 
   const clerk = await clerkClient();
   const { data: memberships } = await clerk.users.getOrganizationMembershipList({
@@ -390,7 +393,6 @@ export async function requestCommunityMembership(communityId: string) {
     return { requested: false, joined: true };
   }
 
-  // Clerk is authoritative: remove stale local membership before creating a request.
   await Promise.all([
     Community.updateOne(
       { _id: community._id },
@@ -424,17 +426,32 @@ export async function requestCommunityMembership(communityId: string) {
 }
 
 export async function fetchCommunityAdminData(communityId: string) {
-  await getCommunityAdminContext(communityId);
-  const community = await Community.findOne({ id: communityId })
+  const { community } = await getCommunityAdminContext(communityId);
+  const populated = await Community.findById(community._id)
     .populate("joinRequests.user", "name username image id")
     .populate("invitations.user", "name username image id")
     .populate("invitations.invitedBy", "name username image id")
     .lean();
 
   return {
-    requests: JSON.parse(JSON.stringify(community?.joinRequests ?? [])),
-    invitations: JSON.parse(JSON.stringify(community?.invitations ?? [])),
+    requests: JSON.parse(JSON.stringify(populated?.joinRequests ?? [])),
+    invitations: JSON.parse(JSON.stringify(populated?.invitations ?? [])),
+    requiresApproval: Boolean(populated?.requiresApproval),
   };
+}
+
+export async function updateCommunityJoinPolicy(
+  communityId: string,
+  requiresApproval: boolean
+) {
+  const { community } = await getCommunityAdminContext(communityId);
+  await Community.updateOne(
+    { _id: community._id },
+    { $set: { requiresApproval: Boolean(requiresApproval) } }
+  );
+  revalidatePath(`/communities/${community.id}`);
+  revalidatePath("/communities");
+  return { requiresApproval: Boolean(requiresApproval) };
 }
 
 export async function reviewCommunityJoinRequest(
@@ -536,8 +553,31 @@ export async function toggleCommunityMembership(
     return { joined: false, requested: false };
   }
 
-  const result = await requestCommunityMembership(communityId);
-  return { joined: result.joined, requested: result.requested };
+  if (community.requiresApproval) {
+    const result = await requestCommunityMembership(communityId);
+    return { joined: result.joined, requested: result.requested };
+  }
+
+  await clerk.organizations.createOrganizationMembership({
+    organizationId: community.id,
+    userId: user.id,
+    role: "org:member",
+  });
+
+  await Promise.all([
+    Community.updateOne(
+      { _id: community._id },
+      { $addToSet: { members: user._id } }
+    ),
+    User.updateOne(
+      { _id: user._id },
+      { $addToSet: { communities: community._id } }
+    ),
+  ]);
+
+  revalidatePath(`/communities/${community.id}`);
+  revalidatePath("/communities");
+  return { joined: true, requested: false };
 }
 
 export async function cancelCommunityInvitation(
