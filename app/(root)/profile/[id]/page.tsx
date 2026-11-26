@@ -10,7 +10,9 @@ import { profileTabs } from '@/constants'
 import Comment from '@/components/forms/Comment'
 import ThreadCard from '@/components/cards/ThreadCard'
 
-const page = async ({ params } : { params : { id : string }}) => {
+const page = async ({ params } : { params: Promise<{ id: string }> }) => {
+    const routeParams = await params;
+    const routeParams = await params;
     const user = await currentUser()
 
     if (!user) {
@@ -18,7 +20,7 @@ const page = async ({ params } : { params : { id : string }}) => {
     }
 
    
-    const userInfo = await fetchUser(params.id)
+    const userInfo = await fetchUser(routeParams.id)
     if(!userInfo?.onboarded){
         redirect('/onboarding')
     
