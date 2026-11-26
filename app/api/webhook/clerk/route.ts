@@ -25,7 +25,7 @@ type EventType =
   | "organization.deleted";
 
 type Event = {
-  data: Record<string, string | number | Record<string, string>[]>;
+  data: Record<string, any>;
   object: "event";
   type: EventType;
 };
@@ -77,7 +77,7 @@ export const POST = async (request: Request) => {
 
       return NextResponse.json({ message: "User created" }, { status: 201 });
     } catch (err) {
-      console.log(err);
+      console.error("Clerk webhook handler failed:", err);
       return NextResponse.json(
         { message: "Internal Server Error" },
         { status: 500 }
@@ -91,7 +91,7 @@ export const POST = async (request: Request) => {
   if (eventType === "organizationInvitation.created") {
     try {
       // Resource: https://clerk.com/docs/reference/backend-api/tag/Organization-Invitations#operation/CreateOrganizationInvitation
-      console.log("Invitation created", evnt?.data);
+      // Clerk owns invitation delivery; this event is acknowledged without DB mutation.
 
       return NextResponse.json(
         { message: "Invitation created" },
@@ -182,7 +182,7 @@ export const POST = async (request: Request) => {
       // Resource: https://clerk.com/docs/reference/backend-api/tag/Organizations#operation/DeleteOrganization
       // Show what evnt?.data sends from above resource
       const { id } = evnt?.data;
-      console.log("deleted", evnt?.data);
+      // Avoid logging organization payload data.
 
       // @ts-ignore
       await deleteCommunity(id);
