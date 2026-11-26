@@ -40,23 +40,26 @@ const RepostThread = ({userId,threadId, currentUserImage, currentUserId}:Props) 
                   }
       })
       const onSubmit = async (value: z.infer<typeof ThreadValidation>) => {
-        // Extract tagged users (words starting with '@') and remove the '@'
-        const taggedUsers = value.thread.match(/@(\w+)/g)?.map((tag) => tag.substring(1)) || [];
-      
-        // Extract topics (words starting with '#') and remove the '#'
-        const topics = value.thread.match(/#(\w+)/g)?.map((tag) => tag.substring(1)) || [];
-      
-        await createThread({
-          author: userId,
-          communityId: organization ? organization.id : null,
-          path: pathname,
-          text: value.thread,
-          taggedUsers,  // Pass the extracted tagged users
-          topics,        // Pass the extracted topics
-          repost: threadId
-        });
-      
-        router.push('/');
+        try {
+          const taggedUsers = value.thread.match(/@(\w+)/g)?.map((tag) => tag.substring(1)) || [];
+          const topics = value.thread.match(/#(\w+)/g)?.map((tag) => tag.substring(1)) || [];
+          await createThread({
+            author: userId,
+            communityId: organization ? organization.id : null,
+            path: pathname,
+            text: value.thread,
+            taggedUsers,
+            topics,
+            repost: threadId,
+          });
+          form.reset();
+          router.push("/");
+        } catch (error) {
+          form.setError("thread", {
+            type: "server",
+            message: error instanceof Error ? error.message : "Unable to repost. Please try again.",
+          });
+        }
       };
 
   return (
@@ -83,12 +86,12 @@ const RepostThread = ({userId,threadId, currentUserImage, currentUserId}:Props) 
               {...field}
               />
             </FormControl>
-            
+            <FormMessage />
           </FormItem>
         )}
       />
-      <Button type='submit' className='comment-form_btn'> 
-        Repost
+      <Button type='submit' className='comment-form_btn' disabled={form.formState.isSubmitting}> 
+        {form.formState.isSubmitting ? 'Reposting...' : 'Repost'}
       </Button>
       </form>
       </Form>
