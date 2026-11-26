@@ -110,26 +110,34 @@ repost
         <div className='flex items-start justify-between'>
             <div className='flex w-full flex-1 flex-row gap-4'>
                 <div className='flex flex-col items-center'>
-                    <Link
-                    href={`/profile/${author.id}`}
-                    className='relative h-11 w-11'>
-                        <Image 
-                        src={author.image}
-                        alt='profile image'
-                        fill
-                        className='cursor-pointer rounded-full'/>
-                        </Link>
+                    {author?.id ? (
+                      <Link href={`/profile/${author.id}`} className='relative h-11 w-11'>
+                        <Image
+                          src={author.image}
+                          alt='profile image'
+                          fill
+                          className='cursor-pointer rounded-full'
+                        />
+                      </Link>
+                    ) : (
+                      <div className='relative h-11 w-11'>
+                        <Image src={author.image} alt='profile image' fill className='rounded-full' />
+                      </div>
+                    )}
                         <div className='thread-card_bar'/>
                 </div>
                 <div className='flex w-full flex-col'>
-                    <Link href={`/profile/${author.id}`} className='w-fit flex gap-2'>
-                        <h4 className='cursor-pointer text-base-semibold text-light-1'>
-                            {author.name}
-                        </h4>
-                        <h4 className='cursor-pointer  text-gray-1'>
-                            @{author.username}
-                        </h4>
-                    </Link>
+                    {author?.id ? (
+                      <Link href={`/profile/${author.id}`} className='w-fit flex gap-2'>
+                        <h4 className='cursor-pointer text-base-semibold text-light-1'>{author.name}</h4>
+                        <h4 className='cursor-pointer text-gray-1'>@{author.username}</h4>
+                      </Link>
+                    ) : (
+                      <div className='w-fit flex gap-2'>
+                        <h4 className='text-base-semibold text-light-1'>{author.name}</h4>
+                        <h4 className='text-gray-1'>@{author.username}</h4>
+                      </div>
+                    )}
                         <Content content={content} />
                         {
                           repostedThread && (
