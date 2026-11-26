@@ -87,6 +87,13 @@ export async function createThread({ text, author, communityId, path, taggedUser
     }
 
 
+    let originalThread = null;
+    if (repost) {
+      if (!mongoose.isValidObjectId(repost)) throw new Error("Invalid repost target.");
+      originalThread = await Thread.findById(repost);
+      if (!originalThread) throw new Error("Original thread not found.");
+    }
+
     const createdThread = await Thread.create({
         text,
         author,
@@ -108,7 +115,7 @@ export async function createThread({ text, author, communityId, path, taggedUser
       await User.updateMany(
         { username: { $in: taggedUsers } },
         {
-          $push: { taggedIn: createdThread._id },
+          $addToSet: { taggedIn: createdThread._id },
         }
       );
     }
@@ -116,29 +123,20 @@ export async function createThread({ text, author, communityId, path, taggedUser
 
     // Update User model
     await User.findByIdAndUpdate(author, {
-      $push: { threads: createdThread._id },
+      $addToSet: { threads: createdThread._id },
     });
 
     if (communityIdObject) {
       // Update Community model
-      await Community.findByIdAndUpdate(communityIdObject, {
-        $push: { threads: createdThread._id },
+      await Community.findByIdAndUpdate(communityIdObject._id, {
+        $addToSet: { threads: createdThread._id },
       });
     }
-    // handle repostedIn
-    if (repost) {
-      // Find the original thread by its ID
-      const originalThread = await Thread.findById(repost);
-
-      if (!originalThread) {
-        throw new Error("Thread not found");
-      }
-
-      // Add the reposted thread's ID to the original thread's repostedIn array
-      originalThread.repostedIn.push(createdThread._id);
-
-      // Save the updated original thread to the database
-      await originalThread.save();
+    if (originalThread) {
+      await Thread.updateOne(
+        { _id: originalThread._id },
+        { $addToSet: { repostedIn: createdThread._id } }
+      );
     }
 
     revalidatePath(path);
@@ -232,6 +230,9 @@ export async function fetchThreadById(threadId: string) {
   await connectToDB();
 
   try {
+    if (!mongoose.isValidObjectId(threadId)) {
+      throw new Error("Invalid thread ID.");
+    }
     const thread = await Thread.findById(threadId)
       .populate({
         path: "author",
