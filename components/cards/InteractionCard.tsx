@@ -146,7 +146,7 @@ const InteractionCard = ({
               <span role="status" className="text-xs text-gray-1">
                 {shareMessage}
               </span>
-            )}   </button>
+            )}
         </div>
                 
                         
