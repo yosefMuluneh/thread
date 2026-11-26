@@ -77,9 +77,43 @@ const page = async ({ params } : { params: Promise<{ id: string }> }) => {
                             </TabsTrigger>
                         ))
                     }
+                    <TabsTrigger value='following' className='tab'>
+                        <p>Following</p>
+                        <p className='ml-1 rounded-sm bg-light-4 px-2 py-1 !item-tiny-medium text-light-2'>
+                            {userInfo.following?.length ?? 0}
+                        </p>
+                    </TabsTrigger>
                 </TabsList>
-                
-                    
+
+                <TabsContent value='following' className='w-full text-light-1'>
+                    <section className='mt-9 flex flex-col gap-5'>
+                        {!userInfo.following?.length ? (
+                            <p className='text-center text-gray-1'>Not following anyone yet</p>
+                        ) : (
+                            userInfo.following.map((person: any) => (
+                                <div key={person.id} className='rounded-md border border-dark-4 p-3'>
+                                    <div className='flex items-center gap-3'>
+                                        <Image
+                                            src={person.image}
+                                            alt={person.name}
+                                            width={48}
+                                            height={48}
+                                            className='rounded-full object-cover'
+                                        />
+                                        <div className='flex flex-col'>
+                                            <p className='text-base-semibold text-light-1'>{person.name}</p>
+                                            <p className='text-small-regular text-gray-1'>@{person.username}</p>
+                                        </div>
+                                        <a href={`/profile/${person.id}`} className='ml-auto text-small-semibold text-blue'>
+                                            View profile
+                                        </a>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </section>
+                </TabsContent>
+
                 <TabsContent  value='threads' className='w-full text-light-1'>
                 {
                 threads.threads.reverse().length === 0 ? 
