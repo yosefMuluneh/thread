@@ -35,7 +35,45 @@ export async function fetchCommunityDetails(id: string) {
 
 export async function fetchMyCommunities() {
   const authenticatedUser = await getAuthenticatedUser();
-  await connectToDB();
+  const clerk = await clerkClient();
+
+  // Clerk is the source of truth for organization membership. Reconcile the
+  // current user's memberships before reading the local community cards so
+  // newly created/joined organizations appear even if a webhook is delayed.
+  const { data: memberships } =
+    await clerk.users.getOrganizationMembershipList({
+      userId: authenticatedUser.id,
+      limit: 500,
+    });
+
+  for (const membership of memberships) {
+    const organization = membership.organization;
+    const community = await Community.findOneAndUpdate(
+      { id: organization.id },
+      {
+        $set: {
+          name: organization.name,
+          username: organization.slug || organization.id,
+          image: organization.imageUrl || "",
+        },
+        $setOnInsert: { bio: "" },
+      },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+
+    if (!community) continue;
+
+    await Promise.all([
+      Community.updateOne(
+        { _id: community._id },
+        { $addToSet: { members: authenticatedUser._id } }
+      ),
+      User.updateOne(
+        { _id: authenticatedUser._id },
+        { $addToSet: { communities: community._id } }
+      ),
+    ]);
+  }
 
   const communities = await Community.find({
     $or: [
