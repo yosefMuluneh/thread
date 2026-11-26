@@ -16,14 +16,14 @@ const page = async () => {
         redirect('/onboarding')
     }
 
-    const [myCommunities, result] = await Promise.all([
-        fetchMyCommunities(),
-        fetchCommunities({
-            searchString: '',
-            pageNumber: 1,
-            pageSize: 25,
-        }),
-    ])
+    // Sync the current user's Clerk organization memberships first, then
+    // fetch the all-communities list so newly synced organizations are included.
+    const myCommunities = await fetchMyCommunities()
+    const result = await fetchCommunities({
+        searchString: '',
+        pageNumber: 1,
+        pageSize: 25,
+    })
 
     return (
         <section>
