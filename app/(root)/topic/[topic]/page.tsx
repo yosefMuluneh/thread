@@ -1,22 +1,23 @@
 import ThreadCard from '@/components/cards/ThreadCard'
 import { fetchThreadsByTopic } from '@/lib/actions/thread.actions'
-import { currentUser } from '@clerk/nextjs'
+import { currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import React from 'react'
 
 const page = async (
-    { params } : { params: { topic : string }}
+    { params } : { params: Promise<{ topic: string }> }
 ) => {
+    const routeParams = await params;
     const user = await currentUser()
 
     if (!user) {
         redirect('/sign-in')
     }
 
-    const threadsByTopic = await fetchThreadsByTopic({ searchString: params.topic })
+    const threadsByTopic = await fetchThreadsByTopic({ searchString: routeParams.topic })
   return (
     <section>
-        <h1 className='head-text text-left mb-3'>Topic: <span className='text-blue'>#{params.topic}</span></h1>
+        <h1 className='head-text text-left mb-3'>Topic: <span className='text-blue'>#{routeParams.topic}</span></h1>
         <div className='flex flex-col flex-col-1 gap-10'>
             {threadsByTopic.filteredThreads.map((thread) => (
                 <ThreadCard

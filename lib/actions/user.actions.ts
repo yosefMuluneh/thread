@@ -2,29 +2,27 @@
 
 import mongoose, { FilterQuery, SortOrder } from "mongoose";
 import { revalidatePath } from "next/cache";
+import { auth } from "@clerk/nextjs/server";
 
 import Community from "../models/community.model";
 import Thread from "../models/thread.model";
 import User from "../models/user.model";
 
 import { connectToDB } from "../mongoose";
-import path from "path";
+import { getAuthenticatedUser } from "@/lib/auth";
+import { userValidation } from "@/lib/validations/user";
 
 export async function fetchUser(userId: string) {
   try {
-    connectToDB();
+    if (!userId || !userId.trim()) return null;
+    await connectToDB();
 
-    const regex = new RegExp(userId, "i");
-
-    // Create an initial query object to filter communities.
-    const query: FilterQuery<typeof User> = {};
-    query.$or = [
-      { username: { $regex: regex } },
-      { id: { $regex: regex } },
-    ];
-
-
-    return await User.findOne(query).populate({
+    // Profile routes accept either a Clerk user ID or a public username.
+    // This also makes @username mentions resolve to the intended profile.
+    const identifier = userId.trim();
+    return await User.findOne({
+      $or: [{ id: identifier }, { username: identifier.toLowerCase() }],
+    }).populate({
       path: "communities",
       model: Community,
     });
@@ -51,18 +49,29 @@ export async function updateUser({
   image,
 }: Params): Promise<void> {
   try {
-    connectToDB();
+    const { userId: authenticatedClerkId } = await auth();
+    if (!authenticatedClerkId || authenticatedClerkId !== userId) {
+      throw new Error("You are not allowed to update this profile.");
+    }
+    await connectToDB();
+
+    const validatedProfile = userValidation.parse({
+      profile_photo: image,
+      name,
+      username,
+      bio,
+    });
 
     await User.findOneAndUpdate(
-      { id: userId },
+      { id: authenticatedClerkId },
       {
-        username: username.toLowerCase(),
-        name,
-        bio,
-        image,
+        username: validatedProfile.username.toLowerCase(),
+        name: validatedProfile.name,
+        bio: validatedProfile.bio,
+        image: validatedProfile.profile_photo,
         onboarded: true,
       },
-      { upsert: true }
+      { new: true, runValidators: true, upsert: true, setDefaultsOnInsert: true }
     );
 
     if (path === "/profile/edit") {
@@ -75,7 +84,7 @@ export async function updateUser({
 
 export async function fetchUserThreads(userId: string) {
   try {
-    connectToDB();
+    await connectToDB();
 
     // Find all threads authored by the user with the given userId
     const threads = await User.findOne({ id: userId }).sort({createdAt : 'desc'}).populate({
@@ -112,6 +121,8 @@ export async function fetchUserThreads(userId: string) {
 //fetch tagged in threads
 export async function fetchTaggedInThreads(taggedIn: string[]) {
   try {
+    await connectToDB();
+
     // Ensure that taggedIn contains thread IDs
     if (!taggedIn || taggedIn.length === 0) {
       return []; // Return an empty array if there are no tagged threads
@@ -160,7 +171,7 @@ export async function fetchUsers({
   sortBy?: SortOrder;
 }) {
   try {
-    connectToDB();
+    await connectToDB();
 
     // Calculate the number of users to skip based on the page number and page size.
     const skipAmount = (pageNumber - 1) * pageSize;
@@ -206,16 +217,19 @@ export async function fetchUsers({
 
 export async function getActivities(userId: string) {
   try {
-    connectToDB();
+    const authenticatedUser = await getAuthenticatedUser();
+    if (authenticatedUser.id !== userId) {
+      throw new Error("You are not allowed to view this activity.");
+    }
 
     //convert userId to object id
-    const userObjectId = await  User.findOne(
-      { id: userId},
-      { _id: 1}
-    )
+    const userObjectId = await User.findOne({ id: userId }, { _id: 1 });
+    if (!userObjectId) {
+      throw new Error("User not found.");
+    }
 
     // Find all threads created by the user
-    const userThreads = await Thread.find({ author: userObjectId });
+    const userThreads = await Thread.find({ author: userObjectId._id });
 
     // Collect all the child thread ids (replies) from the 'children' field of each user thread
     const childThreadIds = userThreads.reduce((acc, userThread) => {
@@ -231,7 +245,7 @@ export async function getActivities(userId: string) {
     // Find and return the child threads (replies) excluding the ones created by the same user
     const replies = await Thread.find({
       _id: { $in: childThreadIds },
-      author: { $ne: userObjectId }, // Exclude threads authored by the same user
+      author: { $ne: userObjectId._id }, // Exclude threads authored by the same user
     }).populate({
       path: "author",
       model: User,
@@ -244,7 +258,7 @@ export async function getActivities(userId: string) {
     // exlude threads reposted by the same user
     const repostedIn = await Thread.find({
       _id: { $in: repostedInThreads},
-      author: {$ne: userObjectId},
+      author: {$ne: userObjectId._id},
     }).populate({
       path: 'author',
       model: User,
@@ -263,11 +277,11 @@ export async function getActivities(userId: string) {
         select: 'name image _id username',
       }
     })
-    const likedThreads = myLikedThreads.likedThreads;
-
-    console.log("myLikedThreads: ", myLikedThreads.likedThreads);
-
-    return {replies:replies, repostedIn: repostedIn, myLikedThreads: myLikedThreads.likedThreads};
+    return {
+      replies,
+      repostedIn,
+      myLikedThreads: myLikedThreads?.likedThreads ?? [],
+    };
   } catch (error) {
     console.error("Error fetching replies: ", error);
     throw error;
@@ -277,73 +291,65 @@ export async function getActivities(userId: string) {
 
 export async function editThread(threadId: string, text: string, path: string) {
   try {
-    connectToDB();
+    const authenticatedUser = await getAuthenticatedUser();
+    if (!mongoose.isValidObjectId(threadId)) throw new Error("Invalid thread ID.");
+    if (!text || text.trim().length < 3 || text.length > 5000) {
+      throw new Error("Thread text must be between 3 and 5000 characters.");
+    }
 
-    await Thread.updateOne({ _id: threadId  }, { text });
+    const updatedThread = await Thread.findOneAndUpdate(
+      { _id: threadId, author: authenticatedUser._id },
+      { $set: { text: text.trim() } },
+      { new: true, runValidators: true }
+    );
+    if (!updatedThread) throw new Error("Thread not found or you are not allowed to edit it.");
+
     revalidatePath(path);
-  }
-  catch (error) {
-    console.error("Error editing thread: ", error);
+  } catch (error) {
+    console.error("Error editing thread:", error);
     throw error;
   }
 }
 
 
-export async function handleLike(threadId: string, userId: string, pathname: string) {
+export async function getLikedThreadIds(): Promise<string[]> {
+  const authenticatedUser = await getAuthenticatedUser();
+  return (authenticatedUser.likedThreads ?? []).map((threadId: mongoose.Types.ObjectId) =>
+    threadId.toString()
+  );
+}
+
+export async function handleLike(threadId: string, _userId: string, pathname: string) {
   try {
-    connectToDB();
+    const authenticatedUser = await getAuthenticatedUser();
+    if (!mongoose.isValidObjectId(threadId)) throw new Error("Invalid thread ID.");
 
-    const thread = await Thread.findOne(
-      { _id : threadId },
-    ).populate({
-      path: 'author',
-      model: User,
-      select: 'id likedThreads',
-    })
-    //get the author
-    const author = thread.author;
-    //fetch users liked threads
-    const likedThreads = author.likedThreads;
-    //check if the thread is already liked
-    const isLiked = likedThreads.likedThreads.includes(threadId);
-    //if liked remove from liked threads
-    if(isLiked){
-      await User.updateOne(
-        { id: userId },
-        { $pull: { likedThreads: threadId } },
+    const thread = await Thread.findById(threadId).select("likedBy upvotes");
+    if (!thread) throw new Error("Thread not found.");
 
-      )
-      
-      thread.likedBy = thread.likedBy.filter((id:any) => id !== userId);
-      thread.upvotes = thread.upvotes - 1;
+    const alreadyLiked = thread.likedBy.some(
+      (id: mongoose.Types.ObjectId) => id.toString() === authenticatedUser._id.toString()
+    );
+
+    if (alreadyLiked) {
+      await Thread.updateOne(
+        { _id: thread._id, likedBy: authenticatedUser._id },
+        { $pull: { likedBy: authenticatedUser._id }, $inc: { upvotes: -1 } }
+      );
+      await User.updateOne({ _id: authenticatedUser._id }, { $pull: { likedThreads: thread._id } });
+    } else {
+      await Thread.updateOne(
+        { _id: thread._id, likedBy: { $ne: authenticatedUser._id } },
+        { $addToSet: { likedBy: authenticatedUser._id }, $inc: { upvotes: 1 } }
+      );
+      await User.updateOne({ _id: authenticatedUser._id }, { $addToSet: { likedThreads: thread._id } });
     }
-    //else add to liked threads and increment upvotes
-    else{
-      await User.updateOne(
-        {
-          id: userId
-        },
-        { $push: { likedThreads: threadId } }
-      )
 
-      //change userID to ibjectID
-      const userObjectId = await  User.findOne(
-        { id: userId},
-        { _id: 1}
-      )
-    
-      thread.likedBy.push(userObjectId);
-      thread.upvotes = thread.upvotes + 1;
-    }
-    await thread.save();
-    console.log("thread after like: ", thread);
+    const updatedThread = await Thread.findById(thread._id).select("upvotes");
     revalidatePath(pathname);
-
-
-    return thread.upvotes;
-  }
-  catch (error) {
-    console.error("Error liking thread: ", error);
+    return updatedThread?.upvotes ?? 0;
+  } catch (error) {
+    console.error("Error updating thread like:", error);
     throw error;
   }
 }

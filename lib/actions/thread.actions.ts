@@ -3,14 +3,15 @@
 import { revalidatePath } from "next/cache";
 
 import { connectToDB } from "../mongoose";
+import { getAuthenticatedUser } from "@/lib/auth";
 
 import User from "../models/user.model";
 import Thread from "../models/thread.model";
 import Community from "../models/community.model";
-import { FilterQuery, SortOrder } from "mongoose";
+import mongoose, { FilterQuery, SortOrder } from "mongoose";
 
 export async function fetchThreads(pageNumber = 1, pageSize = 20) {
-  connectToDB();
+  await connectToDB();
 
   // Calculate the number of posts to skip based on the page number and page size.
   const skipAmount = (pageNumber - 1) * pageSize;
@@ -69,13 +70,29 @@ interface Params {
 export async function createThread({ text, author, communityId, path, taggedUsers = [], topics=[],repost }: Params
 ) {
   try {
-    connectToDB();
+    const authenticatedUser = await getAuthenticatedUser();
+    if (!mongoose.isValidObjectId(author) || authenticatedUser._id.toString() !== author) {
+      throw new Error("You are not allowed to create a thread for this user.");
+    }
+    if (!text || text.trim().length < 3 || text.length > 5000) {
+      throw new Error("Thread text must be between 3 and 5000 characters.");
+    }
+    const communityIdObject = communityId
+      ? await Community.findOne({ id: communityId }, { _id: 1, members: 1 })
+      : null;
+    if (communityId && (!communityIdObject || !communityIdObject.members.some(
+      (member: mongoose.Types.ObjectId) => member.toString() === authenticatedUser._id.toString()
+    ))) {
+      throw new Error("You must be a member of this community to post there.");
+    }
 
-    const communityIdObject = await Community.findOne(
-      { id: communityId },
-      { _id: 1 }
-    )
 
+    let originalThread = null;
+    if (repost) {
+      if (!mongoose.isValidObjectId(repost)) throw new Error("Invalid repost target.");
+      originalThread = await Thread.findById(repost);
+      if (!originalThread) throw new Error("Original thread not found.");
+    }
 
     const createdThread = await Thread.create({
         text,
@@ -87,7 +104,7 @@ export async function createThread({ text, author, communityId, path, taggedUser
         topics,
         repost,
         repostedIn : [],
-        community: communityIdObject, // Assign communityId if provided, or leave it null for personal account
+        community: communityIdObject?._id ?? null,
     });
 
 
@@ -98,7 +115,7 @@ export async function createThread({ text, author, communityId, path, taggedUser
       await User.updateMany(
         { username: { $in: taggedUsers } },
         {
-          $push: { taggedIn: createdThread._id },
+          $addToSet: { taggedIn: createdThread._id },
         }
       );
     }
@@ -106,29 +123,20 @@ export async function createThread({ text, author, communityId, path, taggedUser
 
     // Update User model
     await User.findByIdAndUpdate(author, {
-      $push: { threads: createdThread._id },
+      $addToSet: { threads: createdThread._id },
     });
 
     if (communityIdObject) {
       // Update Community model
-      await Community.findByIdAndUpdate(communityIdObject, {
-        $push: { threads: createdThread._id },
+      await Community.findByIdAndUpdate(communityIdObject._id, {
+        $addToSet: { threads: createdThread._id },
       });
     }
-    // handle repostedIn
-    if (repost) {
-      // Find the original thread by its ID
-      const originalThread = await Thread.findById(repost);
-
-      if (!originalThread) {
-        throw new Error("Thread not found");
-      }
-
-      // Add the reposted thread's ID to the original thread's repostedIn array
-      originalThread.repostedIn.push(createdThread._id);
-
-      // Save the updated original thread to the database
-      await originalThread.save();
+    if (originalThread) {
+      await Thread.updateOne(
+        { _id: originalThread._id },
+        { $addToSet: { repostedIn: createdThread._id } }
+      );
     }
 
     revalidatePath(path);
@@ -152,13 +160,14 @@ export async function fetchAllChildThreads(threadId: string): Promise<any[]> {
 
 export async function deleteThread(id: string, path: string): Promise<void> {
   try {
-    connectToDB();
+    await connectToDB();
 
-    // Find the thread to be deleted (the main thread)
-    const mainThread = await Thread.findById(id).populate("author community");
-
-    if (!mainThread) {
-      throw new Error("Thread not found");
+    if (!mongoose.isValidObjectId(id)) throw new Error("Invalid thread ID.");
+    const authenticatedUser = await getAuthenticatedUser();
+    const mainThread = await Thread.findById(id);
+    if (!mainThread) throw new Error("Thread not found.");
+    if (mainThread.author.toString() !== authenticatedUser._id.toString()) {
+      throw new Error("You are not allowed to delete this thread.");
     }
 
     // Fetch all child threads and their descendants recursively
@@ -171,18 +180,9 @@ export async function deleteThread(id: string, path: string): Promise<void> {
     ];
 
     // Extract the authorIds and communityIds to update User and Community models respectively
-    const uniqueAuthorIds = new Set(
-      [
-        ...descendantThreads.map((thread) => thread.author?._id?.toString()), // Use optional chaining to handle possible undefined values
-        mainThread.author?._id?.toString(),
-      ].filter((id) => id !== undefined)
-    );
-
     const uniqueCommunityIds = new Set(
-      [
-        ...descendantThreads.map((thread) => thread.community?._id?.toString()), // Use optional chaining to handle possible undefined values
-        mainThread.community?._id?.toString(),
-      ].filter((id) => id !== undefined)
+      [...descendantThreads.map((thread) => thread.community?.toString()), mainThread.community?.toString()]
+        .filter((value): value is string => Boolean(value))
     );
 
     // Recursively delete child threads and their descendants
@@ -190,8 +190,23 @@ export async function deleteThread(id: string, path: string): Promise<void> {
 
     // Update User model
     await User.updateMany(
-      { _id: { $in: Array.from(uniqueAuthorIds) } },
-      { $pull: { threads: { $in: descendantThreadIds } } }
+      {},
+      { $pull: {
+        threads: { $in: descendantThreadIds },
+        likedThreads: { $in: descendantThreadIds },
+        myLikedThreads: { $in: descendantThreadIds },
+        taggedIn: { $in: descendantThreadIds },
+      } }
+    );
+    await Thread.updateMany(
+      {},
+      {
+        $pull: {
+          children: { $in: descendantThreadIds },
+          repost: { $in: descendantThreadIds },
+          repostedIn: { $in: descendantThreadIds },
+        },
+      }
     );
 
     // Update Community model
@@ -200,7 +215,8 @@ export async function deleteThread(id: string, path: string): Promise<void> {
       { $pull: { threads: { $in: descendantThreadIds } } }
     );
 
-    const repostedThread = await Thread.findById(mainThread.repost[0]);
+    const repostedThreadId = mainThread.repost?.[0];
+    const repostedThread = repostedThreadId ? await Thread.findById(repostedThreadId) : null;
 
     // Update the reposted thread's repostedIn array
     if (repostedThread) {
@@ -217,9 +233,12 @@ export async function deleteThread(id: string, path: string): Promise<void> {
 }
 
 export async function fetchThreadById(threadId: string) {
-  connectToDB();
+  await connectToDB();
 
   try {
+    if (!mongoose.isValidObjectId(threadId)) {
+      throw new Error("Invalid thread ID.");
+    }
     const thread = await Thread.findById(threadId)
       .populate({
         path: "author",
@@ -265,10 +284,15 @@ export async function addComment(
   userId: string,
   path: string
 ) {
-  connectToDB();
-
   try {
-    // Find the original thread by its ID
+    const authenticatedUser = await getAuthenticatedUser();
+    if (!mongoose.isValidObjectId(threadId)) throw new Error("Invalid thread ID.");
+    if (authenticatedUser._id.toString() !== userId) {
+      throw new Error("You are not allowed to comment as this user.");
+    }
+    if (!commentText || commentText.trim().length < 3 || commentText.length > 2000) {
+      throw new Error("Comment must be between 3 and 2000 characters.");
+    }
     const originalThread = await Thread.findById(threadId);
 
     if (!originalThread) {
@@ -278,8 +302,8 @@ export async function addComment(
     // Create the new comment thread
     const commentThread = new Thread({
       text: commentText,
-      author: userId,
-      parentId: threadId, // Set the parentId to the original thread's ID
+      author: authenticatedUser._id,
+      parentId: threadId,
     });
 
     // Save the comment thread to the database
@@ -311,7 +335,7 @@ export async function fetchThreadsByTopic({
   sortBy?: SortOrder;
 }) {
   try {
-    connectToDB();
+    await connectToDB();
     // Calculate the number of communities to skip based on the page number and page size.
     const skipAmount = (pageNumber - 1) * pageSize;
 

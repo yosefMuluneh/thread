@@ -34,7 +34,7 @@ const UserCard = ({
                 <p className="text-small-medium text-gray-1">@{username}</p>
             </div>
         </div>
-        <Button onClick={()=>{router.push(`/profile/${id}`)}} className="user-card_btn">
+        <Button disabled={!id} onClick={()=>{if (id) router.push(`/profile/${id}`)}} className="user-card_btn">
             View
         </Button>
     </article>

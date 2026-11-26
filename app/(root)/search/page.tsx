@@ -1,11 +1,11 @@
-import { currentUser } from '@clerk/nextjs'
+import { currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { fetchUser, fetchUsers } from '@/lib/actions/user.actions'
 import SearchPage from '@/components/forms/SearchPage'
 import { fetchCommunities } from '@/lib/actions/community.actions'
 import { fetchThreadsByTopic } from '@/lib/actions/thread.actions'
 
-const page = async ({ params } : { params: { id : string }}) => {
+const page = async () => {
     const user = await currentUser()
 
     var userInfo : any = null

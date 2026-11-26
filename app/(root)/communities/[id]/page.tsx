@@ -1,5 +1,5 @@
 'use server'
-import { currentUser } from '@clerk/nextjs'
+import { currentUser } from '@clerk/nextjs/server'
 import ProfileHeader from '@/components/shared/ProfileHeader'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import Image from 'next/image'
@@ -8,12 +8,13 @@ import { communityTabs } from '@/constants'
 import { fetchCommunityDetails } from '@/lib/actions/community.actions'
 import UserCard from '@/components/cards/UserCard'
 
-const page = async ({ params } : { params :{ id : string}}) => {
+const page = async ({ params } : { params: Promise<{ id: string }> }) => {
+    const routeParams = await params;
     const user = await currentUser()
 
     if (!user) return null;
 
-    const communityDetail = await fetchCommunityDetails(params.id)
+    const communityDetail = await fetchCommunityDetails(routeParams.id)
 
     return (
         <section>

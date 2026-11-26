@@ -110,45 +110,57 @@ repost
         <div className='flex items-start justify-between'>
             <div className='flex w-full flex-1 flex-row gap-4'>
                 <div className='flex flex-col items-center'>
-                    <Link
-                    href={`/profile/${author.id}`}
-                    className='relative h-11 w-11'>
-                        <Image 
-                        src={author.image}
-                        alt='profile image'
-                        fill
-                        className='cursor-pointer rounded-full'/>
-                        </Link>
+                    {author?.id ? (
+                      <Link href={`/profile/${author.id}`} className='relative h-11 w-11'>
+                        <Image
+                          src={author.image}
+                          alt='profile image'
+                          fill
+                          className='cursor-pointer rounded-full'
+                        />
+                      </Link>
+                    ) : (
+                      <div className='relative h-11 w-11'>
+                        <Image src={author.image} alt='profile image' fill className='rounded-full' />
+                      </div>
+                    )}
                         <div className='thread-card_bar'/>
                 </div>
                 <div className='flex w-full flex-col'>
-                    <Link href={`/profile/${author.id}`} className='w-fit flex gap-2'>
-                        <h4 className='cursor-pointer text-base-semibold text-light-1'>
-                            {author.name}
-                        </h4>
-                        <h4 className='cursor-pointer  text-gray-1'>
-                            @{author.username}
-                        </h4>
-                    </Link>
+                    {author?.id ? (
+                      <Link href={`/profile/${author.id}`} className='w-fit flex gap-2'>
+                        <h4 className='cursor-pointer text-base-semibold text-light-1'>{author.name}</h4>
+                        <h4 className='cursor-pointer text-gray-1'>@{author.username}</h4>
+                      </Link>
+                    ) : (
+                      <div className='w-fit flex gap-2'>
+                        <h4 className='text-base-semibold text-light-1'>{author.name}</h4>
+                        <h4 className='text-gray-1'>@{author.username}</h4>
+                      </div>
+                    )}
                         <Content content={content} />
                         {
-                          repostedThread &&   <Link href={`/thread/${repostedThread._id}`}>
-                          
-                          <div className='border border-gray-600 border-2 mt-3 rounded-md'>
-                            
-                              <ThreadCard 
-                              id={repostedThread._id.toString()}
-                              currentUserId={currentUserId}
-                              parentId={repostedThread.parentId}
-                              content={repostedThread.text}
-                              author={repostedThread.author}
-                              community={repostedThread.community}
-                              createdAt={repostedThread.createdAt}
-                              comments={repostedThread.children}
-                              upvotes={repostedThread.upvotes}
-                               />
+                          repostedThread && (
+                            <div className='mt-3 rounded-md border-2 border-gray-600 p-3'>
+                              <ThreadCard
+                                id={repostedThread._id.toString()}
+                                currentUserId={currentUserId}
+                                parentId={repostedThread.parentId}
+                                content={repostedThread.text}
+                                author={repostedThread.author}
+                                community={repostedThread.community}
+                                createdAt={repostedThread.createdAt}
+                                comments={repostedThread.children}
+                                upvotes={repostedThread.upvotes}
+                              />
+                              <Link
+                                href={`/thread/${repostedThread._id}`}
+                                className='mt-3 inline-block text-small-semibold text-blue'
+                              >
+                                View original thread
+                              </Link>
                             </div>
-                          </Link>
+                          )
                         }
                     
                     

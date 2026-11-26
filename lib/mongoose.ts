@@ -1,20 +1,45 @@
-import mongoose from 'mongoose'
+import mongoose from "mongoose";
 
-let isConnected = false;
+type MongooseCache = {
+  conn: typeof mongoose | null;
+  promise: Promise<typeof mongoose> | null;
+};
 
-export const connectToDB = async ()=>{
-    mongoose.set('strictQuery',true)
+declare global {
+  // Reuse the connection across Next.js hot reloads and warm serverless invocations.
+  var mongooseCache: MongooseCache | undefined;
+}
 
-    if(!process.env.MONGODB_URL) return console.log("Mongodb url not found")
+const cached: MongooseCache =
+  global.mongooseCache ??
+  (global.mongooseCache = { conn: null, promise: null });
 
-    if(isConnected) return console.log("Already connected")
+export async function connectToDB(): Promise<typeof mongoose> {
+  const mongoUrl = process.env.MONGODB_URL;
 
-    try{
-        await mongoose.connect(process.env.MONGODB_URL);
-        isConnected = true;
-        console.log("Connected to DB")
-    }catch(error){
-        console.log("Error connecting to DB",error)
+  if (!mongoUrl) {
+    throw new Error("MONGODB_URL is not configured.");
+  }
 
-    }
+  if (cached.conn && mongoose.connection.readyState === 1) {
+    return cached.conn;
+  }
+
+  if (!cached.promise) {
+    cached.promise = mongoose
+      .connect(mongoUrl, { bufferCommands: false })
+      .catch((error) => {
+        cached.promise = null;
+        throw error;
+      });
+  }
+
+  try {
+    cached.conn = await cached.promise;
+    return cached.conn;
+  } catch (error) {
+    cached.conn = null;
+    cached.promise = null;
+    throw error;
+  }
 }

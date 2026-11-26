@@ -1,4 +1,4 @@
-import { currentUser } from "@clerk/nextjs";
+import { currentUser } from '@clerk/nextjs/server';
 import { redirect } from "next/navigation";
 
 import ThreadCard from "@/components/cards/ThreadCard";
@@ -9,18 +9,18 @@ import { fetchUser } from "@/lib/actions/user.actions";
 async function Home({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
+  const resolvedSearchParams = await searchParams;
   const user = await currentUser();
   if (!user) return redirect('/sign-in');
 
   const userInfo = await fetchUser(user.id);
   if (!userInfo?.onboarded) redirect("/onboarding");
 
-  const result = await fetchThreads(
-    searchParams.page ? +searchParams.page : 1,
-    30
-  );
+  const pageParam = resolvedSearchParams.page;
+  const pageNumber = Array.isArray(pageParam) ? pageParam[0] : pageParam;
+  const result = await fetchThreads(pageNumber ? Number(pageNumber) : 1, 30);
   return (
     <>
       <h1 className='head-text text-left'>Home</h1>
@@ -42,7 +42,7 @@ async function Home({
                   community={post.community}
                   createdAt={post.createdAt}
                   comments={post.children}
-                  repost={post?.repost[0]}
+                  repost={post?.repost?.[0]?.toString()}
                   upvotes={post.upvotes}
                 />
                 

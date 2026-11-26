@@ -1,12 +1,13 @@
 'use server'
-import { currentUser } from '@clerk/nextjs'
+import { currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { fetchUser } from '@/lib/actions/user.actions'
 import PostThread from '@/components/forms/PostThread'
 import EditThread from '@/components/forms/EditThread'
 import { fetchThreadById } from '@/lib/actions/thread.actions'
 
-const page = async ({ params } : { params : { id : string}}) => {
+const page = async ({ params } : { params: Promise<{ id: string }> }) => {
+    const routeParams = await params;
     const user = await currentUser()
 
     if (!user) {
@@ -19,7 +20,7 @@ const page = async ({ params } : { params : { id : string}}) => {
         if(!userInfo?.onboarded){
             redirect('/onboarding')
     }
-    const thread = await fetchThreadById(params.id)
+    const thread = await fetchThreadById(routeParams.id)
 
     return (
         <>
