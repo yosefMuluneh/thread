@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { Button } from "../ui/button";
 import FollowButton from "./FollowButton";
+import CommunityMembershipButton from "./CommunityMembershipButton";
 
 interface Props {
   accountId: string;
@@ -49,9 +50,7 @@ const ProfileHeader = ({
             {type === "User" ? (
               <FollowButton targetUserId={accountId} initialFollowing={following} />
             ) : (
-              <Button type="button" className="bg-primary-500">
-                {joined ? "Leave" : "Join"}
-              </Button>
+              <CommunityMembershipButton communityId={accountId} initialJoined={joined} />
             )}
           </div>
         )}
