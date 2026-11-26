@@ -12,6 +12,61 @@ import { connectToDB } from "../mongoose";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { userValidation } from "@/lib/validations/user";
 
+export async function toggleFollowUser(targetUserId: string): Promise<{ following: boolean }> {
+  try {
+    const authenticatedUser = await getAuthenticatedUser();
+
+    if (!targetUserId || !targetUserId.trim()) {
+      throw new Error("A valid profile is required.");
+    }
+
+    const targetUser = await User.findOne({ id: targetUserId.trim() });
+    if (!targetUser) {
+      throw new Error("User not found.");
+    }
+
+    if (authenticatedUser._id.equals(targetUser._id)) {
+      throw new Error("You cannot follow yourself.");
+    }
+
+    const isFollowing = (authenticatedUser.following ?? []).some(
+      (id: mongoose.Types.ObjectId) => id.toString() === targetUser._id.toString()
+    );
+
+    if (isFollowing) {
+      await Promise.all([
+        User.updateOne(
+          { _id: authenticatedUser._id },
+          { $pull: { following: targetUser._id } }
+        ),
+        User.updateOne(
+          { _id: targetUser._id },
+          { $pull: { followers: authenticatedUser._id } }
+        ),
+      ]);
+    } else {
+      await Promise.all([
+        User.updateOne(
+          { _id: authenticatedUser._id },
+          { $addToSet: { following: targetUser._id } }
+        ),
+        User.updateOne(
+          { _id: targetUser._id },
+          { $addToSet: { followers: authenticatedUser._id } }
+        ),
+      ]);
+    }
+
+    revalidatePath(`/profile/${targetUser.id}`);
+    revalidatePath(`/profile/${authenticatedUser.id}`);
+
+    return { following: !isFollowing };
+  } catch (error) {
+    console.error("Error updating follow relationship:", error);
+    throw error;
+  }
+}
+
 export async function fetchUser(userId: string) {
   try {
     if (!userId || !userId.trim()) return null;
