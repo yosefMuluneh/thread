@@ -224,7 +224,7 @@ export async function sendInvitationToUser(
   communityId: string,
   username: string
 ) {
-  const { user, community } = await getCommunityAdminContext(communityId);
+  const { user, community, clerk } = await getCommunityAdminContext(communityId);
   const normalizedUsername = username.trim().replace(/^@/, "").toLowerCase();
   if (!normalizedUsername) throw new Error("Enter a username to invite.");
 
@@ -232,7 +232,13 @@ export async function sendInvitationToUser(
   if (!invitee) throw new Error("No user with that username was found.");
   if (invitee._id.equals(user._id)) throw new Error("You cannot invite yourself.");
 
-  const isMember = community.members.some(
+  const { data: inviteeMemberships } = await clerk.users.getOrganizationMembershipList({
+    userId: invitee.id,
+    limit: 500,
+  });
+  const isMember = inviteeMemberships.some(
+    (membership) => membership.organization.id === community.id
+  ) || community.members.some(
     (member: any) => member.toString() === invitee._id.toString()
   );
   if (isMember) throw new Error("That user is already a community member.");
@@ -361,10 +367,26 @@ export async function requestCommunityMembership(communityId: string) {
   const community = await Community.findOne({ id: communityId });
   if (!community) throw new Error("Community not found.");
 
-  const isMember = community.members.some(
+  const clerk = await clerkClient();
+  const { data: memberships } = await clerk.users.getOrganizationMembershipList({
+    userId: user.id,
+    limit: 500,
+  });
+  const isClerkMember = memberships.some(
+    (membership) => membership.organization.id === community.id
+  );
+  const isMember = isClerkMember || community.members.some(
     (member: any) => member.toString() === user._id.toString()
   );
-  if (isMember) throw new Error("You are already a member.");
+  if (isMember) {
+    if (isClerkMember) {
+      await Promise.all([
+        Community.updateOne({ _id: community._id }, { $addToSet: { members: user._id } }),
+        User.updateOne({ _id: user._id }, { $addToSet: { communities: community._id } }),
+      ]);
+    }
+    return { requested: false, joined: true };
+  }
 
   const hasInvitation = (community.invitations ?? []).some(
     (item: any) => item.user?.toString() === user._id.toString()
@@ -374,7 +396,7 @@ export async function requestCommunityMembership(communityId: string) {
   const hasRequest = (community.joinRequests ?? []).some(
     (item: any) => item.user?.toString() === user._id.toString()
   );
-  if (hasRequest) return { requested: true };
+  if (hasRequest) return { requested: true, joined: false };
 
   await Community.updateOne(
     { _id: community._id },
