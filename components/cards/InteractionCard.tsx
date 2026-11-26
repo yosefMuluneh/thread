@@ -1,9 +1,9 @@
 'use client'
-import { handleLike } from '@/lib/actions/user.actions'
+import { getThreadLikeState, handleLike } from '@/lib/actions/user.actions'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 
 interface InteractionProps {
@@ -20,26 +20,55 @@ const InteractionCard = ({
 
     const [hasLiked, setHasLiked] = useState(false)
     const [likes, setLikes] = useState(upvotes)
+    const [isLiking, setIsLiking] = useState(false)
     const pathname = usePathname()
 
-    const handleLikeDislike =async () => {
-        const response =  await handleLike(id, currentUserId, pathname)
-        setHasLiked(!hasLiked)
-        setLikes(response)
+    useEffect(() => {
+        let active = true;
+        getThreadLikeState(id)
+            .then((state) => {
+                if (!active) return;
+                setHasLiked(state.hasLiked);
+                setLikes(state.upvotes);
+            })
+            .catch((error) => console.error("Unable to load like state:", error));
+        return () => { active = false; };
+    }, [id]);
 
+    const handleLikeDislike = async () => {
+        if (isLiking) return;
+        setIsLiking(true);
+        try {
+            const response = await handleLike(id, currentUserId, pathname);
+            setHasLiked((current) => !current);
+            setLikes(response);
+        } catch (error) {
+            console.error("Unable to update like:", error);
+        } finally {
+            setIsLiking(false);
+        }
     }
 
   return (
     <div className='flex gap-3.5'>
             <div className='flex items-center gap-1'>
                 
-            <Image
-            src={`${likes > 0 ? '/assets/heart-filled.svg' : '/assets/heart-gray.svg'}`}
-            alt='heart'
-            width={24}
-            height={24}
-            onClick={handleLikeDislike}
-            className='cursor-pointer object-contain'/>
+            <button
+              type="button"
+              onClick={handleLikeDislike}
+              disabled={isLiking}
+              aria-label={hasLiked ? "Unlike thread" : "Like thread"}
+              aria-pressed={hasLiked}
+              className="disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Image
+                src={hasLiked ? "/assets/heart-filled.svg" : "/assets/heart-gray.svg"}
+                alt=""
+                width={24}
+                height={24}
+                className="cursor-pointer object-contain"
+              />
+            </button>
             {
                 likes > 0 && (
                     <p className='text-subtle-medium text-gray-1'>
