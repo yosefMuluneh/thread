@@ -492,3 +492,27 @@ export async function toggleCommunityMembership(
   const result = await requestCommunityMembership(communityId);
   return { joined: false, requested: result.requested };
 }
+
+export async function cancelCommunityInvitation(
+  communityId: string,
+  inviteeUserId: string
+) {
+  const { community } = await getCommunityAdminContext(communityId);
+  const invitee = await User.findOne({ id: inviteeUserId });
+  if (!invitee) throw new Error("Invited user was not found.");
+
+  await Promise.all([
+    Community.updateOne(
+      { _id: community._id },
+      { $pull: { invitations: { user: invitee._id } } }
+    ),
+    User.updateOne(
+      { _id: invitee._id },
+      { $pull: { invitedTo: community._id } }
+    ),
+  ]);
+
+  revalidatePath(`/communities/${community.id}`);
+  revalidatePath("/communities");
+  return { success: true };
+}
