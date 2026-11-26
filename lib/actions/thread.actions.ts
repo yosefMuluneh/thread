@@ -199,8 +199,14 @@ export async function deleteThread(id: string, path: string): Promise<void> {
       } }
     );
     await Thread.updateMany(
-      { children: { $in: descendantThreadIds } },
-      { $pull: { children: { $in: descendantThreadIds } } }
+      {},
+      {
+        $pull: {
+          children: { $in: descendantThreadIds },
+          repost: { $in: descendantThreadIds },
+          repostedIn: { $in: descendantThreadIds },
+        },
+      }
     );
 
     // Update Community model
