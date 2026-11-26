@@ -35,8 +35,8 @@ const PostThread =  ({ userId }:{ userId : string}) => {
     })
     const onSubmit = async (value: z.infer<typeof ThreadValidation>) => {
       try {
-        const taggedUsers = value.thread.match(/@(\\w+)/g)?.map((tag) => tag.substring(1)) || [];
-        const topics = value.thread.match(/#(\\w+)/g)?.map((tag) => tag.substring(1)) || [];
+        const taggedUsers = value.thread.match(/@(\w+)/g)?.map((tag) => tag.substring(1)) || [];
+        const topics = value.thread.match(/#(\w+)/g)?.map((tag) => tag.substring(1)) || [];
         await createThread({
           author: userId,
           communityId: organization ? organization.id : null,
