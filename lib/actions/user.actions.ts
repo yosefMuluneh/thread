@@ -327,22 +327,21 @@ export async function getActivities(userId: string) {
       select: 'name image _id username',
     })
 
-    const myLikedThreads = await User.findOne(
-      { id: userId },
-      { likedThreads: 1}
-    ).populate({
-      path: 'likedThreads',
-      model: Thread,
-      populate: {
-        path: 'author',
-        model: User,
-        select: 'name image _id username',
-      }
+    const likedThreadsReceived = await Thread.find({
+      author: userObjectId._id,
+      likedBy: { $exists: true, $ne: [] },
     })
+      .sort({ createdAt: "desc" })
+      .populate({
+        path: "likedBy",
+        model: User,
+        select: "name image _id username id",
+      });
+
     return {
       replies,
       repostedIn,
-      myLikedThreads: myLikedThreads?.likedThreads ?? [],
+      likedThreadsReceived,
     };
   } catch (error) {
     console.error("Error fetching replies: ", error);
