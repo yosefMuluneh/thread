@@ -62,11 +62,11 @@ export async function addMemberToCommunity(communityId: string, memberId: string
   await Promise.all([
     Community.updateOne(
       { _id: community._id },
-      { $addToSet: { members: user._id }, $pull: { invitations: user._id } }
+      { $addToSet: { members: user._id } }
     ),
     User.updateOne(
       { _id: user._id },
-      { $addToSet: { communities: community._id }, $pull: { invitedTo: community._id } }
+      { $addToSet: { communities: community._id } }
     ),
   ]);
 
@@ -87,11 +87,11 @@ export async function removeUserFromCommunity(userId: string, communityId: strin
   await Promise.all([
     Community.updateOne(
       { _id: community._id },
-      { $pull: { members: user._id, invitations: user._id } }
+      { $pull: { members: user._id } }
     ),
     User.updateOne(
       { _id: user._id },
-      { $pull: { communities: community._id, invitedTo: community._id } }
+      { $pull: { communities: community._id } }
     ),
   ]);
 
@@ -155,7 +155,6 @@ export async function deleteCommunity(communityId: string) {
     {
       $pull: {
         communities: community._id,
-        invitedTo: community._id,
         threads: { $in: threadObjectIds },
         likedThreads: { $in: threadObjectIds },
         myLikedThreads: { $in: threadObjectIds },
