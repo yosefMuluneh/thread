@@ -77,10 +77,17 @@ export async function fetchUser(userId: string) {
     const identifier = userId.trim();
     return await User.findOne({
       $or: [{ id: identifier }, { username: identifier.toLowerCase() }],
-    }).populate({
-      path: "communities",
-      model: Community,
-    });
+    }).populate([
+      {
+        path: "communities",
+        model: Community,
+      },
+      {
+        path: "following",
+        model: User,
+        select: "id name username image",
+      },
+    ]);
   } catch (error: any) {
     throw new Error(`Failed to fetch user: ${error.message}`);
   }
