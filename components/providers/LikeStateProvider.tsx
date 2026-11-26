@@ -6,12 +6,14 @@ import { getLikedThreadIds } from "@/lib/actions/user.actions";
 type LikeStateContextValue = {
   likedThreadIds: Set<string>;
   setLiked: (threadId: string, liked: boolean) => void;
+  isLoading: boolean;
 };
 
 const LikeStateContext = createContext<LikeStateContextValue | null>(null);
 
 export function LikeStateProvider({ children }: { children: React.ReactNode }) {
   const [likedThreadIds, setLikedThreadIds] = useState<Set<string>>(new Set());
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
@@ -20,7 +22,10 @@ export function LikeStateProvider({ children }: { children: React.ReactNode }) {
       .then((ids) => {
         if (active) setLikedThreadIds(new Set(ids));
       })
-      .catch((error) => console.error("Unable to load liked threads:", error));
+      .catch((error) => console.error("Unable to load liked threads:", error))
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
 
     return () => {
       active = false;
@@ -37,7 +42,7 @@ export function LikeStateProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <LikeStateContext.Provider value={{ likedThreadIds, setLiked }}>
+    <LikeStateContext.Provider value={{ likedThreadIds, setLiked, isLoading }}>
       {children}
     </LikeStateContext.Provider>
   );
