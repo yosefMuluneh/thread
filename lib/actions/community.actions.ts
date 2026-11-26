@@ -495,11 +495,15 @@ export async function requestCommunityMembership(communityId: string) {
 
 export async function fetchCommunityAdminData(communityId: string) {
   const { community } = await getCommunityAdminContext(communityId);
-  const populated = await Community.findById(community._id)
+  const populated = (await Community.findById(community._id)
     .populate("joinRequests.user", "name username image id")
     .populate("invitations.user", "name username image id")
     .populate("invitations.invitedBy", "name username image id")
-    .lean();
+    .lean()) as {
+      joinRequests?: unknown[];
+      invitations?: unknown[];
+      requiresApproval?: boolean;
+    } | null;
 
   return {
     requests: JSON.parse(JSON.stringify(populated?.joinRequests ?? [])),
