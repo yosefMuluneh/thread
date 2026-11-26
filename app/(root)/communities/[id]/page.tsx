@@ -32,7 +32,7 @@ const page = async ({
   const communityDetail = await fetchCommunityDetails(routeParams.id);
   if (!communityDetail) return null;
 
-  let adminData: { requests: any[]; invitations: any[] } | null = null;
+  let adminData: { requests: any[]; invitations: any[]; requiresApproval: boolean } | null = null;
   try {
     adminData = await fetchCommunityAdminData(routeParams.id);
   } catch {
