@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
+import type { FormEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -26,21 +27,20 @@ const SearchPage = ({ users, communities, topics, userId }: Props) => {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
+  const [pageNumber, setPageNumber] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
 
-  const handleSearch = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const runSearch = (nextPage: number, append: boolean) => {
     setError(null);
     startTransition(async () => {
       try {
-        const results = await searchEntities({
-          entity: searchEntity,
-          searchString,
-          userId,
-        });
-
-        if (searchEntity === "user") setFetchedUsers(results);
-        if (searchEntity === "community") setFetchedCommunities(results);
-        if (searchEntity === "topic") setFetchedTopics(results);
+        const response = await searchEntities({ entity: searchEntity, searchString, userId, pageNumber: nextPage });
+        const results = response.results;
+        if (searchEntity === "user") setFetchedUsers((current) => append ? [...current, ...results] : results);
+        if (searchEntity === "community") setFetchedCommunities((current) => append ? [...current, ...results] : results);
+        if (searchEntity === "topic") setFetchedTopics((current) => append ? [...current, ...results] : results);
+        setPageNumber(nextPage);
+        setHasMore(response.isNext);
         setHasSearched(true);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Search failed. Please try again.");
@@ -48,10 +48,17 @@ const SearchPage = ({ users, communities, topics, userId }: Props) => {
     });
   };
 
+  const handleSearch = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    runSearch(1, false);
+  };
+
   const changeEntity = (entity: SearchEntity) => {
     setSearchEntity(entity);
     setError(null);
     setHasSearched(false);
+    setPageNumber(1);
+    setHasMore(false);
   };
 
   const resultCount =
@@ -152,6 +159,13 @@ const SearchPage = ({ users, communities, topics, userId }: Props) => {
             </div>
           </article>
         ))}
+      {hasMore && (
+        <div className="flex justify-center">
+          <Button type="button" onClick={() => runSearch(pageNumber + 1, true)} disabled={isPending}>
+            {isPending ? "Loading..." : "Load more"}
+          </Button>
+        </div>
+      )}
     </section>
   );
 };
