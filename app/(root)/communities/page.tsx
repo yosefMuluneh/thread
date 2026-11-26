@@ -1,7 +1,8 @@
 import { currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { fetchUser } from '@/lib/actions/user.actions'
-import { fetchCommunities } from '@/lib/actions/community.actions'
+import { fetchCommunities, fetchMyCommunityInvitations } from '@/lib/actions/community.actions'
+import CommunityInvitationCard from '@/components/cards/CommunityInvitationCard'
 import CommunityCard from '@/components/cards/CommunityCard'
 
 const page = async () => {
@@ -20,6 +21,8 @@ const page = async () => {
         }
     }
 
+    const invitations = await fetchMyCommunityInvitations()
+
     const result = await fetchCommunities({
         searchString: '',
         pageNumber: 1,
@@ -28,6 +31,15 @@ const page = async () => {
   return (
     <section>
         <h1 className="head-text mb-7">Communities</h1>
+
+        {invitations.length > 0 && (
+          <section className="mb-10 flex flex-col gap-4">
+            <h2 className="text-heading3-bold text-light-1">Your invitations</h2>
+            {invitations.map((community: any) => (
+              <CommunityInvitationCard key={community.id} community={community} />
+            ))}
+          </section>
+        )}
 
         <div className='mt-14 flex flex-col gap-9'>
   {
