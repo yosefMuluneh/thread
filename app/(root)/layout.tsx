@@ -9,6 +9,7 @@ import TopBar from "@/components/shared/TopBar";
 import { LeftSideBar } from "@/components/shared/LeftSideBar";
 import RightSideBar from "@/components/shared/RightSideBar";
 import BottomBar from "@/components/shared/BottomBar";
+import { LikeStateProvider } from "@/components/providers/LikeStateProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -26,6 +27,7 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en">
         <body className={inter.className}>
+          <LikeStateProvider>
           <TopBar/>
             <main className="flex flex-row">
               <LeftSideBar/>
@@ -38,7 +40,7 @@ export default function RootLayout({
             </main>
 
           <BottomBar/>
-          
+          </LikeStateProvider>
           </body>
       </html>
     </ClerkProvider>
