@@ -234,7 +234,7 @@ export async function searchEntities({
   }
 
   await connectToDB();
-  const term = searchString.trim().replace(/[.*+?^$()|[\\]\\\\]/g, "\\export async function fetchUsers({");
+  const term = searchString.trim().split("").map((character) => ".*+?^$()|[]\\".includes(character) ? "\\" + character : character).join("");
   const regex = new RegExp(term, "i");
 
   if (entity === "user") {
