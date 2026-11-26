@@ -8,23 +8,13 @@ import Thread from "../models/thread.model";
 import User from "../models/user.model";
 
 import { connectToDB } from "../mongoose";
-import path from "path";
+import { getAuthenticatedUser } from "@/lib/auth";
 
 export async function fetchUser(userId: string) {
   try {
-    connectToDB();
+    await connectToDB();
 
-    const regex = new RegExp(userId, "i");
-
-    // Create an initial query object to filter communities.
-    const query: FilterQuery<typeof User> = {};
-    query.$or = [
-      { username: { $regex: regex } },
-      { id: { $regex: regex } },
-    ];
-
-
-    return await User.findOne(query).populate({
+    return await User.findOne({ id: userId }).populate({
       path: "communities",
       model: Community,
     });
@@ -51,10 +41,13 @@ export async function updateUser({
   image,
 }: Params): Promise<void> {
   try {
-    connectToDB();
+    const authenticatedUser = await getAuthenticatedUser();
+    if (authenticatedUser.id !== userId) {
+      throw new Error("You are not allowed to update this profile.");
+    }
 
     await User.findOneAndUpdate(
-      { id: userId },
+      { id: authenticatedUser.id },
       {
         username: username.toLowerCase(),
         name,
@@ -75,7 +68,7 @@ export async function updateUser({
 
 export async function fetchUserThreads(userId: string) {
   try {
-    connectToDB();
+    await connectToDB();
 
     // Find all threads authored by the user with the given userId
     const threads = await User.findOne({ id: userId }).sort({createdAt : 'desc'}).populate({
@@ -112,6 +105,8 @@ export async function fetchUserThreads(userId: string) {
 //fetch tagged in threads
 export async function fetchTaggedInThreads(taggedIn: string[]) {
   try {
+    await connectToDB();
+
     // Ensure that taggedIn contains thread IDs
     if (!taggedIn || taggedIn.length === 0) {
       return []; // Return an empty array if there are no tagged threads
@@ -160,7 +155,7 @@ export async function fetchUsers({
   sortBy?: SortOrder;
 }) {
   try {
-    connectToDB();
+    await connectToDB();
 
     // Calculate the number of users to skip based on the page number and page size.
     const skipAmount = (pageNumber - 1) * pageSize;
@@ -206,7 +201,7 @@ export async function fetchUsers({
 
 export async function getActivities(userId: string) {
   try {
-    connectToDB();
+    await connectToDB();
 
     //convert userId to object id
     const userObjectId = await  User.findOne(
@@ -277,73 +272,55 @@ export async function getActivities(userId: string) {
 
 export async function editThread(threadId: string, text: string, path: string) {
   try {
-    connectToDB();
+    const authenticatedUser = await getAuthenticatedUser();
+    if (!mongoose.isValidObjectId(threadId)) throw new Error("Invalid thread ID.");
 
-    await Thread.updateOne({ _id: threadId  }, { text });
+    const updatedThread = await Thread.findOneAndUpdate(
+      { _id: threadId, author: authenticatedUser._id },
+      { $set: { text: text.trim() } },
+      { new: true, runValidators: true }
+    );
+    if (!updatedThread) throw new Error("Thread not found or you are not allowed to edit it.");
+
     revalidatePath(path);
-  }
-  catch (error) {
-    console.error("Error editing thread: ", error);
+  } catch (error) {
+    console.error("Error editing thread:", error);
     throw error;
   }
 }
 
 
-export async function handleLike(threadId: string, userId: string, pathname: string) {
+export async function handleLike(threadId: string, _userId: string, pathname: string) {
   try {
-    connectToDB();
+    const authenticatedUser = await getAuthenticatedUser();
+    if (!mongoose.isValidObjectId(threadId)) throw new Error("Invalid thread ID.");
 
-    const thread = await Thread.findOne(
-      { _id : threadId },
-    ).populate({
-      path: 'author',
-      model: User,
-      select: 'id likedThreads',
-    })
-    //get the author
-    const author = thread.author;
-    //fetch users liked threads
-    const likedThreads = author.likedThreads;
-    //check if the thread is already liked
-    const isLiked = likedThreads.likedThreads.includes(threadId);
-    //if liked remove from liked threads
-    if(isLiked){
-      await User.updateOne(
-        { id: userId },
-        { $pull: { likedThreads: threadId } },
+    const thread = await Thread.findById(threadId).select("likedBy upvotes");
+    if (!thread) throw new Error("Thread not found.");
 
-      )
-      
-      thread.likedBy = thread.likedBy.filter((id:any) => id !== userId);
-      thread.upvotes = thread.upvotes - 1;
+    const alreadyLiked = thread.likedBy.some(
+      (id: mongoose.Types.ObjectId) => id.toString() === authenticatedUser._id.toString()
+    );
+
+    if (alreadyLiked) {
+      await Thread.updateOne(
+        { _id: thread._id, likedBy: authenticatedUser._id },
+        { $pull: { likedBy: authenticatedUser._id }, $inc: { upvotes: -1 } }
+      );
+      await User.updateOne({ _id: authenticatedUser._id }, { $pull: { likedThreads: thread._id } });
+    } else {
+      await Thread.updateOne(
+        { _id: thread._id, likedBy: { $ne: authenticatedUser._id } },
+        { $addToSet: { likedBy: authenticatedUser._id }, $inc: { upvotes: 1 } }
+      );
+      await User.updateOne({ _id: authenticatedUser._id }, { $addToSet: { likedThreads: thread._id } });
     }
-    //else add to liked threads and increment upvotes
-    else{
-      await User.updateOne(
-        {
-          id: userId
-        },
-        { $push: { likedThreads: threadId } }
-      )
 
-      //change userID to ibjectID
-      const userObjectId = await  User.findOne(
-        { id: userId},
-        { _id: 1}
-      )
-    
-      thread.likedBy.push(userObjectId);
-      thread.upvotes = thread.upvotes + 1;
-    }
-    await thread.save();
-    console.log("thread after like: ", thread);
+    const updatedThread = await Thread.findById(thread._id).select("upvotes");
     revalidatePath(pathname);
-
-
-    return thread.upvotes;
-  }
-  catch (error) {
-    console.error("Error liking thread: ", error);
+    return updatedThread?.upvotes ?? 0;
+  } catch (error) {
+    console.error("Error updating thread like:", error);
     throw error;
   }
 }
