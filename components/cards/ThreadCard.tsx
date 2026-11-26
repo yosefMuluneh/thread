@@ -132,23 +132,27 @@ repost
                     </Link>
                         <Content content={content} />
                         {
-                          repostedThread &&   <Link href={`/thread/${repostedThread._id}`}>
-                          
-                          <div className='border border-gray-600 border-2 mt-3 rounded-md'>
-                            
-                              <ThreadCard 
-                              id={repostedThread._id.toString()}
-                              currentUserId={currentUserId}
-                              parentId={repostedThread.parentId}
-                              content={repostedThread.text}
-                              author={repostedThread.author}
-                              community={repostedThread.community}
-                              createdAt={repostedThread.createdAt}
-                              comments={repostedThread.children}
-                              upvotes={repostedThread.upvotes}
-                               />
+                          repostedThread && (
+                            <div className='mt-3 rounded-md border-2 border-gray-600 p-3'>
+                              <ThreadCard
+                                id={repostedThread._id.toString()}
+                                currentUserId={currentUserId}
+                                parentId={repostedThread.parentId}
+                                content={repostedThread.text}
+                                author={repostedThread.author}
+                                community={repostedThread.community}
+                                createdAt={repostedThread.createdAt}
+                                comments={repostedThread.children}
+                                upvotes={repostedThread.upvotes}
+                              />
+                              <Link
+                                href={`/thread/${repostedThread._id}`}
+                                className='mt-3 inline-block text-small-semibold text-blue'
+                              >
+                                View original thread
+                              </Link>
                             </div>
-                          </Link>
+                          )
                         }
                     
                     
