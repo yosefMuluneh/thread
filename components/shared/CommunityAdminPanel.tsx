@@ -6,6 +6,7 @@ import {
   cancelCommunityInvitation,
   reviewCommunityJoinRequest,
   sendInvitationToUser,
+  updateCommunityJoinPolicy,
 } from "@/lib/actions/community.actions";
 
 interface Person {
@@ -18,12 +19,19 @@ interface Props {
   communityId: string;
   requests: { user: Person; requestedAt?: string }[];
   invitations: { user: Person; invitedBy?: Person; createdAt?: string }[];
+  requiresApproval: boolean;
 }
 
-export default function CommunityAdminPanel({ communityId, requests, invitations }: Props) {
+export default function CommunityAdminPanel({
+  communityId,
+  requests,
+  invitations,
+  requiresApproval: initialRequiresApproval,
+}: Props) {
   const [username, setUsername] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [requiresApproval, setRequiresApproval] = useState(initialRequiresApproval);
   const [isPending, startTransition] = useTransition();
 
   const invite = (event: FormEvent<HTMLFormElement>) => {
@@ -37,6 +45,19 @@ export default function CommunityAdminPanel({ communityId, requests, invitations
         setUsername("");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unable to send invitation.");
+      }
+    });
+  };
+
+  const updatePolicy = (enabled: boolean) => {
+    setError("");
+    setRequiresApproval(enabled);
+    startTransition(async () => {
+      try {
+        await updateCommunityJoinPolicy(communityId, enabled);
+      } catch (err) {
+        setRequiresApproval(!enabled);
+        setError(err instanceof Error ? err.message : "Unable to update join settings.");
       }
     });
   };
@@ -66,6 +87,24 @@ export default function CommunityAdminPanel({ communityId, requests, invitations
   return (
     <div className="mt-6 flex flex-col gap-8">
       <section className="rounded-xl border border-dark-4 bg-dark-2 p-4">
+        <h3 className="text-base-semibold text-light-1">Membership settings</h3>
+        <label className="mt-3 flex cursor-pointer items-center gap-3 text-small-regular text-light-1">
+          <input
+            type="checkbox"
+            checked={requiresApproval}
+            disabled={isPending}
+            onChange={(event) => updatePolicy(event.target.checked)}
+          />
+          Require owner/admin approval before users can join
+        </label>
+        <p className="mt-2 text-xs text-gray-1">
+          {requiresApproval
+            ? "People must request to join. Owners and admins can approve or reject requests."
+            : "Anyone can join immediately. Owners and admins can still invite specific users."}
+        </p>
+      </section>
+
+      <section className="rounded-xl border border-dark-4 bg-dark-2 p-4">
         <h3 className="text-base-semibold text-light-1">Invite a member</h3>
         <p className="mt-1 text-small-regular text-gray-1">
           Enter an existing member's username. They will receive an invitation in My Communities.
@@ -83,7 +122,6 @@ export default function CommunityAdminPanel({ communityId, requests, invitations
           </Button>
         </form>
         {message && <p role="status" className="mt-2 text-xs text-green-500">{message}</p>}
-        {error && <p role="alert" className="mt-2 text-xs text-red-500">{error}</p>}
       </section>
 
       <section>
@@ -128,6 +166,8 @@ export default function CommunityAdminPanel({ communityId, requests, invitations
           </div>
         )}
       </section>
+
+      {error && <p role="alert" className="text-xs text-red-500">{error}</p>}
     </div>
   );
 }
