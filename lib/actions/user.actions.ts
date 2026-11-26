@@ -223,10 +223,12 @@ export async function searchEntities({
   entity,
   searchString,
   userId,
+  pageNumber = 1,
 }: {
   entity: "user" | "community" | "topic";
   searchString: string;
   userId: string;
+  pageNumber?: number;
 }) {
   const authenticatedUser = await getAuthenticatedUser();
   if (authenticatedUser.id !== userId) {
@@ -234,36 +236,59 @@ export async function searchEntities({
   }
 
   await connectToDB();
-  const term = searchString.trim().split("").map((character) => ".*+?^$()|[]\\".includes(character) ? "\\" + character : character).join("");
+  const term = searchString.trim().split("").map((character) =>
+    ".*+?^$()|[]\\".includes(character) ? "\\" + character : character
+  ).join("");
   const regex = new RegExp(term, "i");
+  const pageSize = 25;
+  const skipAmount = (Math.max(1, pageNumber) - 1) * pageSize;
 
   if (entity === "user") {
-    const users = await User.find({
-      id: { $ne: userId },
-      ...(term ? { $or: [{ name: regex }, { username: regex }] } : {}),
-    }).sort({ createdAt: "desc" }).limit(25).lean();
-    return JSON.parse(JSON.stringify(users));
+    const query: any = { id: { $ne: userId } };
+    if (term) query.$or = [{ name: regex }, { username: regex }];
+    const [users, total] = await Promise.all([
+      User.find(query).sort({ createdAt: "desc" }).skip(skipAmount).limit(pageSize).lean(),
+      User.countDocuments(query),
+    ]);
+    return {
+      results: JSON.parse(JSON.stringify(users)),
+      isNext: total > skipAmount + users.length,
+    };
   }
 
   if (entity === "community") {
-    const communities = await Community.find(
-      term ? { $or: [{ name: regex }, { username: regex }] } : {}
-    )
-      .sort({ createdAt: "desc" })
-      .limit(25)
-      .populate({ path: "members", model: User, select: "name username image id" })
-      .lean();
-    return JSON.parse(JSON.stringify(communities));
+    const query: any = term ? { $or: [{ name: regex }, { username: regex }] } : {};
+    const [communities, total] = await Promise.all([
+      Community.find(query)
+        .sort({ createdAt: "desc" })
+        .skip(skipAmount)
+        .limit(pageSize)
+        .populate({ path: "members", model: User, select: "name username image id" })
+        .lean(),
+      Community.countDocuments(query),
+    ]);
+    return {
+      results: JSON.parse(JSON.stringify(communities)),
+      isNext: total > skipAmount + communities.length,
+    };
   }
 
-  const topics = await Thread.find(
-    term ? { $or: [{ topics: regex }, { text: regex }] } : { topics: { $exists: true, $ne: [] } }
-  )
-    .sort({ createdAt: "desc" })
-    .limit(25)
-    .populate({ path: "author", model: User, select: "name username image id" })
-    .lean();
-  return JSON.parse(JSON.stringify(topics));
+  const query: any = term
+    ? { $or: [{ topics: regex }, { text: regex }] }
+    : { topics: { $exists: true, $ne: [] } };
+  const [topics, total] = await Promise.all([
+    Thread.find(query)
+      .sort({ createdAt: "desc" })
+      .skip(skipAmount)
+      .limit(pageSize)
+      .populate({ path: "author", model: User, select: "name username image id" })
+      .lean(),
+    Thread.countDocuments(query),
+  ]);
+  return {
+    results: JSON.parse(JSON.stringify(topics)),
+    isNext: total > skipAmount + topics.length,
+  };
 }
 
 export async function fetchUsers({
