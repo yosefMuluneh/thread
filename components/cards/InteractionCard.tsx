@@ -22,7 +22,7 @@ const InteractionCard = ({
     const [likes, setLikes] = useState(upvotes)
     const [isLiking, setIsLiking] = useState(false)
     const pathname = usePathname()
-    const { likedThreadIds, setLiked } = useLikeState()
+    const { likedThreadIds, setLiked, isLoading } = useLikeState()
     const hasLiked = likedThreadIds.has(id)
 
     const handleLikeDislike = async () => {
@@ -46,7 +46,7 @@ const InteractionCard = ({
             <button
               type="button"
               onClick={handleLikeDislike}
-              disabled={isLiking}
+              disabled={isLiking || isLoading}
               aria-label={hasLiked ? "Unlike thread" : "Like thread"}
               aria-pressed={hasLiked}
               className="disabled:cursor-not-allowed disabled:opacity-60"
