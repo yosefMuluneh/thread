@@ -35,15 +35,20 @@ const page = async () => {
           response.replies.length > 0 && (
             <>
             {
-              response.replies.map((activity: any) => (
-                <Link key={activity._id} href={`/thread/${activity.parentId.parentId}`} >
+              response.replies.map((activity: any) => {
+                // parentId is populated with the thread document in getActivities().
+                // Link to that thread's _id, not its own parentId.
+                const parentThreadId = activity.parentId?._id?.toString();
+
+                const card = (
                   <article className='activity-card'>
-                    <Image 
-                    src={activity.author.image}
-                    alt='profile picture'
-                    width={20}
-                    height={20}
-                    className='rounded-full object-cover' />
+                    <Image
+                      src={activity.author.image}
+                      alt='profile picture'
+                      width={20}
+                      height={20}
+                      className='rounded-full object-cover'
+                    />
                     <p className='!text-small-regular text-light-1'>
                       <span className='mr-1 text-primary-500'>
                         {activity.author.name}
@@ -51,8 +56,16 @@ const page = async () => {
                       replied to your thread
                     </p>
                   </article>
-                </Link>
-              ))
+                );
+
+                return parentThreadId ? (
+                  <Link key={activity._id} href={`/thread/${parentThreadId}`}>
+                    {card}
+                  </Link>
+                ) : (
+                  <div key={activity._id}>{card}</div>
+                );
+              })
             }
             
             </>
