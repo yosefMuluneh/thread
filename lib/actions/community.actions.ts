@@ -23,6 +23,11 @@ export async function fetchCommunityDetails(id: string) {
         model: User,
         select: "name username image _id id",
       },
+      {
+        path: "joinRequests.user",
+        model: User,
+        select: "name username image _id id",
+      },
     ]);
 
     return communityDetails;
