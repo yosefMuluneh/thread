@@ -1,7 +1,7 @@
 'use server'
 import ThreadCard from '@/components/cards/ThreadCard'
 import React from 'react'
-import { currentUser } from '@clerk/nextjs'
+import { currentUser } from '@clerk/nextjs/server'
 import { fetchUser } from '@/lib/actions/user.actions'
 import { redirect } from 'next/navigation'
 import { fetchThreadById } from '@/lib/actions/thread.actions'
