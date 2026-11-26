@@ -237,7 +237,7 @@ export async function searchEntities({
 
   await connectToDB();
   const term = searchString.trim().split("").map((character) =>
-    ".*+?^$()|[]\\".includes(character) ? "\\" + character : character
+    ".*+?^$()|[]{}\\".includes(character) ? "\\" + character : character
   ).join("");
   const regex = new RegExp(term, "i");
   const pageSize = 25;
