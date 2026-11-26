@@ -11,7 +11,8 @@ interface Props {
   bio: string;
   type?: "User" | "Community";
   joined?: boolean;
-  isCommunityCreator?: boolean;\n  communityRequested?: boolean;
+  isCommunityCreator?: boolean;
+  communityRequested?: boolean;
   following?: boolean;
 }
 
@@ -24,7 +25,8 @@ const ProfileHeader = ({
   bio,
   type = "User",
   joined = false,
-  isCommunityCreator = false,\n  communityRequested = false,
+  isCommunityCreator = false,
+  communityRequested = false,
   following = false,
 }: Props) => {
   const isOwnProfile = accountId === authUserId;
@@ -51,7 +53,12 @@ const ProfileHeader = ({
             {type === "User" ? (
               <FollowButton targetUserId={accountId} initialFollowing={following} />
             ) : (
-              <CommunityMembershipButton communityId={accountId} initialJoined={joined} isCreator={isCommunityCreator} initialRequested={communityRequested} />
+              <CommunityMembershipButton
+                communityId={accountId}
+                initialJoined={joined}
+                isCreator={isCommunityCreator}
+                initialRequested={communityRequested}
+              />
             )}
           </div>
         )}
