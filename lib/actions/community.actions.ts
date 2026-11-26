@@ -223,7 +223,14 @@ async function getCommunityAdminContext(communityId: string) {
   return { user, community, clerk };
 }
 
-export async function sendInvitationToUser(
+export async function searchCommunityInviteCandidates(
+  communityId: string,
+  searchString: string
+) {
+  const { user, community } = await getCommunityAdminContext(communityId);
+  await connectToDB();
+
+  const term = searchString.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\export async function sendInvitationToUser(
   communityId: string,
   username: string
 ) {
@@ -274,6 +281,105 @@ export async function sendInvitationToUser(
   revalidatePath(`/communities/${community.id}`);
   revalidatePath("/communities");
   return { success: true, invitedUsername: invitee.username };
+}");
+  if (term.length < 2) return [];
+
+  const excludedIds = [
+    user._id,
+    ...(community.members ?? []),
+    ...(community.invitations ?? []).map((invitation: any) => invitation.user),
+  ].filter(Boolean);
+
+  const candidates = await User.find({
+    _id: { $nin: excludedIds },
+    $or: [
+      { username: { $regex: term, $options: "i" } },
+      { name: { $regex: term, $options: "i" } },
+    ],
+  })
+    .select("id name username image")
+    .sort({ name: 1 })
+    .limit(12)
+    .lean();
+
+  return candidates.map((candidate: any) => ({
+    id: String(candidate.id),
+    name: String(candidate.name ?? ""),
+    username: String(candidate.username ?? ""),
+    image: String(candidate.image ?? ""),
+  }));
+}
+
+export async function sendInvitationsToUsers(
+  communityId: string,
+  inviteeUserIds: string[]
+) {
+  const { user, community, clerk } = await getCommunityAdminContext(communityId);
+  const uniqueIds = [...new Set(inviteeUserIds.filter((id) => typeof id === "string" && id.trim()))];
+  if (uniqueIds.length === 0) throw new Error("Select at least one person to invite.");
+
+  const invitees = await User.find({ id: { $in: uniqueIds } });
+  if (invitees.length !== uniqueIds.length) {
+    throw new Error("One or more selected users could not be found. Refresh the list and try again.");
+  }
+
+  const alreadyInvitedIds = new Set(
+    (community.invitations ?? []).map((invitation: any) => invitation.user?.toString())
+  );
+  const communityMemberIds = new Set(
+    (community.members ?? []).map((member: any) => member.toString())
+  );
+
+  const eligibleInvitees = [];
+  for (const invitee of invitees) {
+    if (invitee._id.equals(user._id)) continue;
+    if (alreadyInvitedIds.has(invitee._id.toString())) continue;
+    if (communityMemberIds.has(invitee._id.toString())) continue;
+
+    const { data: memberships } = await clerk.users.getOrganizationMembershipList({
+      userId: invitee.id,
+      limit: 500,
+    });
+    if (!memberships.some((membership) => membership.organization.id === community.id)) {
+      eligibleInvitees.push(invitee);
+    }
+  }
+
+  if (eligibleInvitees.length === 0) {
+    throw new Error("None of the selected users can be invited. They may already be members or have pending invitations.");
+  }
+
+  await Promise.all(
+    eligibleInvitees.map(async (invitee) => {
+      await Promise.all([
+        Community.updateOne(
+          { _id: community._id },
+          {
+            $push: {
+              invitations: {
+                user: invitee._id,
+                invitedBy: user._id,
+                createdAt: new Date(),
+              },
+            },
+            $pull: { joinRequests: { user: invitee._id } },
+          }
+        ),
+        User.updateOne(
+          { _id: invitee._id },
+          { $addToSet: { invitedTo: community._id } }
+        ),
+      ]);
+    })
+  );
+
+  revalidatePath(`/communities/${community.id}`);
+  revalidatePath("/communities");
+  return {
+    success: true,
+    invitedCount: eligibleInvitees.length,
+    invitedUsernames: eligibleInvitees.map((invitee) => invitee.username),
+  };
 }
 
 export async function fetchMyCommunityInvitations() {
@@ -287,14 +393,22 @@ export async function fetchMyCommunityInvitations() {
     const invitation = (community.invitations ?? []).find(
       (item: any) => item.user?.toString() === user._id.toString()
     );
+    const inviter = invitation?.invitedBy;
     return {
-      id: community.id,
-      name: community.name,
-      username: community.username,
-      image: community.image,
-      bio: community.bio,
-      invitedBy: invitation?.invitedBy ?? null,
-      createdAt: invitation?.createdAt ?? null,
+      id: String(community.id),
+      name: String(community.name ?? ""),
+      username: String(community.username ?? ""),
+      image: String(community.image ?? ""),
+      bio: String(community.bio ?? ""),
+      invitedBy: inviter
+        ? {
+            id: String(inviter.id ?? ""),
+            name: String(inviter.name ?? ""),
+            username: String(inviter.username ?? ""),
+            image: String(inviter.image ?? ""),
+          }
+        : null,
+      createdAt: invitation?.createdAt ? new Date(invitation.createdAt).toISOString() : null,
     };
   });
 }
