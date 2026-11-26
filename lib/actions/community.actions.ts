@@ -1,6 +1,7 @@
 "use server";
 
 import { FilterQuery, SortOrder } from "mongoose";
+import { revalidatePath } from "next/cache";
 
 import Community from "../models/community.model";
 import Thread from "../models/thread.model";
@@ -120,6 +121,108 @@ export async function fetchCommunities({
     return { communities, isNext };
   } catch (error) {
     console.error("Error fetching communities:", error);
+    throw error;
+  }
+}
+
+export async function toggleCommunityMembership(communityId: string): Promise<{ joined: boolean }> {
+  try {
+    const authenticatedUser = await getAuthenticatedUser();
+
+    if (!communityId || !communityId.trim()) {
+      throw new Error("A valid community is required.");
+    }
+
+    const community = await Community.findOne({ id: communityId.trim() });
+    if (!community) throw new Error("Community not found.");
+
+    const isCreator =
+      community.createdBy?.toString() === authenticatedUser._id.toString();
+    const isMember = community.members.some(
+      (member: any) => member.toString() === authenticatedUser._id.toString()
+    );
+
+    if (isMember || isCreator) {
+      if (isCreator) {
+        throw new Error("The community creator cannot leave their own community.");
+      }
+
+      await Promise.all([
+        Community.updateOne(
+          { _id: community._id },
+          { $pull: { members: authenticatedUser._id } }
+        ),
+        User.updateOne(
+          { _id: authenticatedUser._id },
+          { $pull: { communities: community._id } }
+        ),
+      ]);
+
+      revalidatePath(`/communities/${community.id}`);
+      revalidatePath("/communities");
+      return { joined: false };
+    }
+
+    await Promise.all([
+      Community.updateOne(
+        { _id: community._id },
+        {
+          $addToSet: { members: authenticatedUser._id },
+          $pull: { invitations: authenticatedUser._id },
+        }
+      ),
+      User.updateOne(
+        { _id: authenticatedUser._id },
+        {
+          $addToSet: { communities: community._id },
+          $pull: { invitedTo: community._id },
+        }
+      ),
+    ]);
+
+    revalidatePath(`/communities/${community.id}`);
+    revalidatePath("/communities");
+    return { joined: true };
+  } catch (error) {
+    console.error("Error updating community membership:", error);
+    throw error;
+  }
+}
+
+export async function acceptCommunityInvitation(communityId: string) {
+  try {
+    const authenticatedUser = await getAuthenticatedUser();
+    const community = await Community.findOne({
+      id: communityId,
+      invitations: authenticatedUser._id,
+    });
+
+    if (!community) {
+      throw new Error("No pending invitation was found for this community.");
+    }
+
+    await Promise.all([
+      Community.updateOne(
+        { _id: community._id },
+        {
+          $addToSet: { members: authenticatedUser._id },
+          $pull: { invitations: authenticatedUser._id },
+        }
+      ),
+      User.updateOne(
+        { _id: authenticatedUser._id },
+        {
+          $addToSet: { communities: community._id },
+          $pull: { invitedTo: community._id },
+        }
+      ),
+    ]);
+
+    revalidatePath(`/communities/${community.id}`);
+    revalidatePath("/communities");
+    return { joined: true };
+  } catch (error) {
+    console.error("Error accepting community invitation:", error);
     throw error;
   }
 }
