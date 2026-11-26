@@ -68,13 +68,16 @@ export async function fetchMyCommunities() {
 
     if (!community) continue;
 
-    // If the creation webhook ran before the creator's local profile existed,
-    // Clerk's org:admin membership lets us restore the owner relationship.
-    if (!community.createdBy && membership.role === "org:admin") {
-      await Community.updateOne(
-        { _id: community._id, createdBy: { $exists: false } },
-        { $set: { createdBy: authenticatedUser._id } }
-      );
+    // Recover the real creator from Clerk if the organization webhook arrived
+    // before that creator's local profile was available.
+    if (!community.createdBy && organization.createdBy) {
+      const creator = await User.findOne({ id: organization.createdBy }).select("_id");
+      if (creator) {
+        await Community.updateOne(
+          { _id: community._id, createdBy: { $exists: false } },
+          { $set: { createdBy: creator._id } }
+        );
+      }
     }
 
     await Promise.all([
