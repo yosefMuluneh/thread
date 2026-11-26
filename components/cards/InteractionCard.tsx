@@ -1,9 +1,10 @@
 'use client'
-import { getThreadLikeState, handleLike } from '@/lib/actions/user.actions'
+import { handleLike } from '@/lib/actions/user.actions'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { useLikeState } from '@/components/providers/LikeStateProvider'
 
 
 interface InteractionProps {
@@ -18,29 +19,18 @@ const InteractionCard = ({
  }: {thread :  any}) => {
     const { upvotes, comments, id, currentUserId } = JSON.parse(thread)
 
-    const [hasLiked, setHasLiked] = useState(false)
     const [likes, setLikes] = useState(upvotes)
     const [isLiking, setIsLiking] = useState(false)
     const pathname = usePathname()
-
-    useEffect(() => {
-        let active = true;
-        getThreadLikeState(id)
-            .then((state) => {
-                if (!active) return;
-                setHasLiked(state.hasLiked);
-                setLikes(state.upvotes);
-            })
-            .catch((error) => console.error("Unable to load like state:", error));
-        return () => { active = false; };
-    }, [id]);
+    const { likedThreadIds, setLiked } = useLikeState()
+    const hasLiked = likedThreadIds.has(id)
 
     const handleLikeDislike = async () => {
         if (isLiking) return;
         setIsLiking(true);
         try {
             const response = await handleLike(id, currentUserId, pathname);
-            setHasLiked((current) => !current);
+            setLiked(id, !hasLiked);
             setLikes(response);
         } catch (error) {
             console.error("Unable to update like:", error);
