@@ -214,13 +214,13 @@ export async function getActivities(userId: string) {
     await connectToDB();
 
     //convert userId to object id
-    const userObjectId = await  User.findOne(
-      { id: userId},
-      { _id: 1}
-    )
+    const userObjectId = await User.findOne({ id: userId }, { _id: 1 });
+    if (!userObjectId) {
+      throw new Error("User not found.");
+    }
 
     // Find all threads created by the user
-    const userThreads = await Thread.find({ author: userObjectId });
+    const userThreads = await Thread.find({ author: userObjectId._id });
 
     // Collect all the child thread ids (replies) from the 'children' field of each user thread
     const childThreadIds = userThreads.reduce((acc, userThread) => {
@@ -236,7 +236,7 @@ export async function getActivities(userId: string) {
     // Find and return the child threads (replies) excluding the ones created by the same user
     const replies = await Thread.find({
       _id: { $in: childThreadIds },
-      author: { $ne: userObjectId }, // Exclude threads authored by the same user
+      author: { $ne: userObjectId._id }, // Exclude threads authored by the same user
     }).populate({
       path: "author",
       model: User,
@@ -249,7 +249,7 @@ export async function getActivities(userId: string) {
     // exlude threads reposted by the same user
     const repostedIn = await Thread.find({
       _id: { $in: repostedInThreads},
-      author: {$ne: userObjectId},
+      author: {$ne: userObjectId._id},
     }).populate({
       path: 'author',
       model: User,
@@ -268,11 +268,11 @@ export async function getActivities(userId: string) {
         select: 'name image _id username',
       }
     })
-    const likedThreads = myLikedThreads.likedThreads;
-
-    console.log("myLikedThreads: ", myLikedThreads.likedThreads);
-
-    return {replies:replies, repostedIn: repostedIn, myLikedThreads: myLikedThreads.likedThreads};
+    return {
+      replies,
+      repostedIn,
+      myLikedThreads: myLikedThreads?.likedThreads ?? [],
+    };
   } catch (error) {
     console.error("Error fetching replies: ", error);
     throw error;
