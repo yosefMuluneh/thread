@@ -5,7 +5,7 @@ const communitySchema = new mongoose.Schema({
     username : { type: String, required: true, unique: true },
     name : { type: String, required: true },
     image : String,
-    bio : String,
+    bio : String,\n    requiresApproval: { type: Boolean, default: false },
     createdBy:{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
