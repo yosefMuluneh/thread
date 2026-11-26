@@ -1,7 +1,7 @@
 import React from 'react'
 import UserCard from '../cards/UserCard'
 import { fetchUsers } from '@/lib/actions/user.actions'
-import { currentUser } from '@clerk/nextjs'
+import { currentUser } from '@clerk/nextjs/server'
 import { fetchCommunities } from '@/lib/actions/community.actions'
 import CommunityCard from '../cards/CommunityCard'
 import SuggestedCommunities from './SuggestedCommunities'
