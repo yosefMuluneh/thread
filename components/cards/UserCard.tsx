@@ -8,7 +8,8 @@ interface Props {
     name: string,
     username: string,
     imgUrl: string,
-    personType: string
+    personType: string,
+    currentUserId?: string
 
 }
 const UserCard = ({
@@ -16,7 +17,8 @@ const UserCard = ({
     name,
     username,
     imgUrl,
-    personType
+    personType,
+    currentUserId
 
 }:Props) => {
     const router = useRouter()
@@ -34,9 +36,11 @@ const UserCard = ({
                 <p className="text-small-medium text-gray-1">@{username}</p>
             </div>
         </div>
-        <Button disabled={!id} onClick={()=>{if (id) router.push(`/profile/${id}`)}} className="user-card_btn">
-            View
-        </Button>
+        {id !== currentUserId && (
+          <Button disabled={!id} onClick={()=>{if (id) router.push(`/profile/${id}`)}} className="user-card_btn">
+              View
+          </Button>
+        )}
     </article>
   )
 }
