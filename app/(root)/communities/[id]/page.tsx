@@ -114,6 +114,8 @@ const page = async ({
                     imgUrl={member.image}
                     personType="User"
                     currentUserId={user.id}
+                    profileLink
+                    hideViewButton
                   />
                   {isCreator && member.id !== user.id && (
                     <form
@@ -124,7 +126,7 @@ const page = async ({
                           member.id
                         );
                       }}
-                      className="-mt-8 flex justify-end"
+                      className="mt-3 flex justify-end"
                     >
                       <button
                         type="submit"
