@@ -53,10 +53,10 @@ const InteractionCard = ({ thread }: { thread: string }) => {
     }
   }
 
-  const actionClass = 'inline-flex min-h-10 items-center gap-2 rounded-full px-3 text-xs font-medium text-gray-1 transition hover:bg-white/[0.06] hover:text-light-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-50'
+  const actionClass = 'inline-flex h-10 min-w-10 shrink-0 items-center justify-center gap-1.5 rounded-full px-2 text-xs font-medium text-gray-1 transition hover:bg-white/[0.06] hover:text-light-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-50'
 
   return (
-    <div className="flex flex-wrap items-center gap-2 border-t border-white/[0.07] pt-3">
+    <div className="flex w-full flex-nowrap items-center justify-between gap-1 border-t border-white/[0.07] pt-3">
       <button
         type="button"
         onClick={handleLikeDislike}
@@ -70,27 +70,25 @@ const InteractionCard = ({ thread }: { thread: string }) => {
           alt=""
           width={19}
           height={19}
-          className="object-contain"
+          className="shrink-0 object-contain"
         />
-        <span>{likes > 0 ? likes : 'Like'}</span>
+        {likes > 0 && <span>{likes}</span>}
       </button>
 
       <Link href={`/thread/${id}`} className={actionClass} aria-label="Reply to thread">
-        <Image src="/assets/reply.svg" alt="" width={19} height={19} className="object-contain" />
-        <span>{comments?.length ? comments.length : 'Reply'}</span>
+        <Image src="/assets/reply.svg" alt="" width={19} height={19} className="shrink-0 object-contain" />
+        {comments?.length > 0 && <span>{comments.length}</span>}
       </Link>
 
       <Link href={`/repost/${id}`} className={actionClass} aria-label="Repost thread">
-        <Image src="/assets/repost.svg" alt="" width={19} height={19} className="object-contain" />
-        <span>Repost</span>
+        <Image src="/assets/repost.svg" alt="" width={19} height={19} className="shrink-0 object-contain" />
       </Link>
 
       <button type="button" onClick={shareThread} aria-label="Share thread" className={actionClass}>
-        <Image src="/assets/share.svg" alt="" width={19} height={19} className="object-contain" />
-        <span>Share</span>
+        <Image src="/assets/share.svg" alt="" width={19} height={19} className="shrink-0 object-contain" />
       </button>
 
-      {shareMessage && <span role="status" className="text-xs text-gray-1">{shareMessage}</span>}
+      {shareMessage && <span role="status" className="sr-only">{shareMessage}</span>}
     </div>
   )
 }
