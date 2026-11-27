@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from "react"
+import { useState, type ChangeEvent } from "react"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -38,7 +38,7 @@ const PostThread = ({ userId }: { userId: string }) => {
     },
   })
 
-  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
 
@@ -87,8 +87,8 @@ const PostThread = ({ userId }: { userId: string }) => {
         if (!imageUrl) throw new Error("Image upload failed. Please try again.")
       }
 
-      const taggedUsers = text.match(/@(\\w+)/g)?.map((tag) => tag.substring(1)) || []
-      const topics = text.match(/#(\\w+)/g)?.map((tag) => tag.substring(1)) || []
+      const taggedUsers = text.match(/@(\w+)/g)?.map((tag) => tag.substring(1)) || []
+      const topics = text.match(/#(\w+)/g)?.map((tag) => tag.substring(1)) || []
 
       await createThread({
         author: userId,
