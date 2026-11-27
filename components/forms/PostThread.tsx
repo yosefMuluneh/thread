@@ -21,6 +21,7 @@ import { Textarea } from "../ui/textarea"
 import { ThreadValidation } from "@/lib/validations/thread"
 import { createThread } from "@/lib/actions/thread.actions"
 import { useUploadThing } from "@/lib/validations/uploadthing"
+import Image from "next/image"
 
 const PostThread = ({ userId }: { userId: string }) => {
   const pathname = usePathname()
@@ -156,8 +157,10 @@ const PostThread = ({ userId }: { userId: string }) => {
 
           {imagePreview && (
             <div className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-black/20 p-1">
-              <img
+              <Image
                 src={imagePreview}
+                width={1200}
+                height={800}
                 alt="Selected thread image preview"
                 className="max-h-[360px] w-full object-contain"
               />
