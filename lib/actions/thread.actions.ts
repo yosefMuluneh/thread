@@ -9,6 +9,7 @@ import User from "../models/user.model";
 import Thread from "../models/thread.model";
 import Community from "../models/community.model";
 import mongoose, { FilterQuery, SortOrder } from "mongoose";
+import { createNotification } from "@/lib/actions/notification.actions";
 
 export async function fetchThreads(pageNumber = 1, pageSize = 20) {
   await connectToDB();
@@ -314,6 +315,15 @@ export async function addComment(
 
     // Save the updated original thread to the database
     await originalThread.save();
+
+    await createNotification({
+      recipientId: originalThread.author,
+      actorId: authenticatedUser._id,
+      type: originalThread.parentId ? "reply" : "comment",
+      entityType: "thread",
+      entityId: threadId,
+      message: originalThread.parentId ? "replied to your comment." : "commented on your thread.",
+    });
 
     revalidatePath(path);
   } catch (err) {
