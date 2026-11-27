@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import FollowButton from "./FollowButton";
 import CommunityMembershipButton from "./CommunityMembershipButton";
+import { TabsTrigger } from "@/components/ui/tabs";
 
 interface Props {
   accountId: string;
@@ -16,6 +17,8 @@ interface Props {
   communityRequested?: boolean;
   requiresApproval?: boolean;
   following?: boolean;
+  followerCount?: number;
+  followingCount?: number;
 }
 
 const ProfileHeader = ({
@@ -31,6 +34,8 @@ const ProfileHeader = ({
   communityRequested = false,
   requiresApproval = false,
   following = false,
+  followerCount,
+  followingCount,
 }: Props) => {
   const isOwnProfile = accountId === authUserId;
 
@@ -72,7 +77,27 @@ const ProfileHeader = ({
         )}
       </div>
       <p className="mt-6 max-w-lg text-base-regular text-light-2">{bio}</p>
-      <div className="mt-12 h-0.5 w-full bg-dark-3" />
+
+      {type === "User" && followerCount !== undefined && followingCount !== undefined && (
+        <div className="mt-5 flex items-center gap-5 border-b border-white/[0.08] pb-5">
+          <TabsTrigger
+            value="followers"
+            className="h-auto justify-start gap-1 rounded-none border-0 p-0 text-sm text-light-2 data-[state=active]:bg-transparent data-[state=active]:text-light-1"
+          >
+            <span className="font-semibold text-light-1">{followerCount}</span>
+            <span>Followers</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="following"
+            className="h-auto justify-start gap-1 rounded-none border-0 p-0 text-sm text-light-2 data-[state=active]:bg-transparent data-[state=active]:text-light-1"
+          >
+            <span className="font-semibold text-light-1">{followingCount}</span>
+            <span>Following</span>
+          </TabsTrigger>
+        </div>
+      )}
+
+      <div className="mt-8 h-0.5 w-full bg-dark-3" />
     </div>
   );
 };
