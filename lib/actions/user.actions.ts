@@ -469,7 +469,7 @@ export async function handleLike(threadId: string, _userId: string, pathname: st
     const authenticatedUser = await getAuthenticatedUser();
     if (!mongoose.isValidObjectId(threadId)) throw new Error("Invalid thread ID.");
 
-    const thread = await Thread.findById(threadId).select("likedBy upvotes");
+    const thread = await Thread.findById(threadId).select("author likedBy upvotes");
     if (!thread) throw new Error("Thread not found.");
 
     const alreadyLiked = thread.likedBy.some(
@@ -488,6 +488,14 @@ export async function handleLike(threadId: string, _userId: string, pathname: st
         { $addToSet: { likedBy: authenticatedUser._id }, $inc: { upvotes: 1 } }
       );
       await User.updateOne({ _id: authenticatedUser._id }, { $addToSet: { likedThreads: thread._id } });
+      await createNotification({
+        recipientId: thread.author,
+        actorId: authenticatedUser._id,
+        type: "like",
+        entityType: "thread",
+        entityId: thread._id.toString(),
+        message: "liked your thread.",
+      });
     }
 
     const updatedThread = await Thread.findById(thread._id).select("upvotes");
