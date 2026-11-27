@@ -1,29 +1,30 @@
-import React from 'react'
-import UserCard from '../cards/UserCard'
-import { fetchUsers } from '@/lib/actions/user.actions'
-import { currentUser } from '@clerk/nextjs/server'
-import { fetchCommunities } from '@/lib/actions/community.actions'
-import CommunityCard from '../cards/CommunityCard'
-import SuggestedCommunities from './SuggestedCommunities'
-import SuggestedUsers from './SuggestedUsers'
-import { Separator } from '../ui/separator'
+import { currentUser } from "@clerk/nextjs/server";
+import { fetchUsers } from "@/lib/actions/user.actions";
+import { fetchCommunities } from "@/lib/actions/community.actions";
+import { getAuthenticatedUser } from "@/lib/auth";
+import SuggestedCommunities from "./SuggestedCommunities";
+import SuggestedUsers from "./SuggestedUsers";
 
 const RightSideBar = async () => {
-  const user = await currentUser()
-  if(!user) return null
-  const users = await fetchUsers({ userId: user.id, pageNumber: 1, pageSize: 5 })
-  const communities = await fetchCommunities({ searchString: '', pageNumber: 1, pageSize: 5 })
-  return (
-    <section className='custom-scrollbar rightsidebar'>
-      <div className='flex flex-col'>
-        <SuggestedCommunities communities={communities.communities}/>
-        
-      </div>
-      <div className='flex flex-col'>
-        <SuggestedUsers users={users.users}/>
-      </div>
-    </section>
-  )
-}
+  const user = await currentUser();
+  if (!user) return null;
 
-export default RightSideBar
+  const [users, communities, authenticatedUser] = await Promise.all([
+    fetchUsers({ userId: user.id, pageNumber: 1, pageSize: 5 }),
+    fetchCommunities({ searchString: "", pageNumber: 1, pageSize: 5 }),
+    getAuthenticatedUser(),
+  ]);
+
+  const followingIds = (authenticatedUser.following ?? []).map(
+    (followedUserId: { toString(): string }) => followedUserId.toString()
+  );
+
+  return (
+    <aside className="custom-scrollbar rightsidebar">
+      <SuggestedCommunities communities={communities.communities} />
+      <SuggestedUsers users={users.users} followingIds={followingIds} />
+    </aside>
+  );
+};
+
+export default RightSideBar;
