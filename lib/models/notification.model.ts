@@ -18,6 +18,7 @@ const notificationSchema = new mongoose.Schema(
       enum: [
         "follow",
         "like",
+        "repost",
         "comment",
         "reply",
         "community_invitation",
