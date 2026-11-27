@@ -65,18 +65,31 @@ interface Params {
   taggedUsers?: string[],
   topics?: string[],
   repost?: string
+  imageUrl?: string | null
 }
 
 
-export async function createThread({ text, author, communityId, path, taggedUsers = [], topics=[],repost }: Params
+export async function createThread({ text, author, communityId, path, taggedUsers = [], topics = [], repost, imageUrl }: Params
 ) {
   try {
     const authenticatedUser = await getAuthenticatedUser();
     if (!mongoose.isValidObjectId(author) || authenticatedUser._id.toString() !== author) {
       throw new Error("You are not allowed to create a thread for this user.");
     }
-    if (!text || text.trim().length < 3 || text.length > 5000) {
-      throw new Error("Thread text must be between 3 and 5000 characters.");
+    const normalizedText = (text ?? "").trim();
+    if ((!normalizedText && !imageUrl) || normalizedText.length > 5000) {
+      throw new Error("Add text or an image. Thread text cannot exceed 5000 characters.");
+    }
+    if (imageUrl) {
+      let parsedImageUrl: URL;
+      try {
+        parsedImageUrl = new URL(imageUrl);
+      } catch {
+        throw new Error("The uploaded image URL is invalid.");
+      }
+      if (parsedImageUrl.protocol !== "https:") {
+        throw new Error("Thread images must use a secure HTTPS URL.");
+      }
     }
     const communityIdObject = communityId
       ? await Community.findOne({ id: communityId }, { _id: 1, members: 1 })
@@ -96,7 +109,8 @@ export async function createThread({ text, author, communityId, path, taggedUser
     }
 
     const createdThread = await Thread.create({
-        text,
+        text: normalizedText,
+        imageUrl: imageUrl ?? null,
         author,
         upvotes: 0,
         downvotes: 0,
