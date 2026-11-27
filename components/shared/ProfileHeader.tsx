@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import FollowButton from "./FollowButton";
 import CommunityMembershipButton from "./CommunityMembershipButton";
 
@@ -50,7 +51,7 @@ const ProfileHeader = ({
             <p className="text-lg text-gray-500">@{username}</p>
           </div>
         </div>
-        {!isOwnProfile && (
+        {isOwnProfile && type === "User" ? (\n          <Link href="/profile/edit" className="inline-flex min-h-10 items-center rounded-full border border-white/10 px-4 text-sm font-semibold text-light-1 transition hover:border-primary-500/50 hover:bg-primary-500/10">\n            Edit profile\n          </Link>\n        ) : !isOwnProfile && (
           <div>
             {type === "User" ? (
               <FollowButton targetUserId={accountId} initialFollowing={following} />
