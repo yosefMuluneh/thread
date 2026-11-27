@@ -418,3 +418,54 @@ export async function fetchThreadsByTopic({
     throw error;
   }
 }
+
+
+/** Fetch top-level threads posted to communities the authenticated user belongs to. */
+export async function fetchCommunityThreads(pageNumber = 1, pageSize = 30) {
+  await connectToDB();
+  const authenticatedUser = await getAuthenticatedUser();
+  const user = await User.findById(authenticatedUser._id).select("communities").lean();
+  const communityIds = user?.communities ?? [];
+  if (!communityIds.length) return { posts: [], isNext: false };
+
+  const skipAmount = (Math.max(1, pageNumber) - 1) * pageSize;
+  const query = { community: { $in: communityIds }, parentId: { $in: [null, undefined] } };
+  const [posts, totalPostsCount] = await Promise.all([
+    Thread.find(query)
+      .sort({ createdAt: "desc" })
+      .skip(skipAmount)
+      .limit(pageSize)
+      .populate({ path: "author", model: User })
+      .populate({ path: "community", model: Community })
+      .populate({ path: "children", populate: { path: "author", model: User, select: "_id name parentId image username" } })
+      .exec(),
+    Thread.countDocuments(query),
+  ]);
+
+  return { posts, isNext: totalPostsCount > skipAmount + posts.length };
+}
+
+/** Fetch top-level threads authored by users the authenticated user follows. */
+export async function fetchFollowingThreads(pageNumber = 1, pageSize = 30) {
+  await connectToDB();
+  const authenticatedUser = await getAuthenticatedUser();
+  const user = await User.findById(authenticatedUser._id).select("following").lean();
+  const followedUserIds = user?.following ?? [];
+  if (!followedUserIds.length) return { posts: [], isNext: false };
+
+  const skipAmount = (Math.max(1, pageNumber) - 1) * pageSize;
+  const query = { author: { $in: followedUserIds }, parentId: { $in: [null, undefined] } };
+  const [posts, totalPostsCount] = await Promise.all([
+    Thread.find(query)
+      .sort({ createdAt: "desc" })
+      .skip(skipAmount)
+      .limit(pageSize)
+      .populate({ path: "author", model: User })
+      .populate({ path: "community", model: Community })
+      .populate({ path: "children", populate: { path: "author", model: User, select: "_id name parentId image username" } })
+      .exec(),
+    Thread.countDocuments(query),
+  ]);
+
+  return { posts, isNext: totalPostsCount > skipAmount + posts.length };
+}
