@@ -32,6 +32,7 @@ const ThreadsTab = async ({
                 currentUserId={currentUserId}
                 parentId={thread.parentId}
                 content={thread.text}
+                imageUrl={thread.imageUrl}
                 author={ accountType === "User" ? 
             {name:threads.name, image:threads.image, id:threads.id, username:threads.username} :
             {name:threads.name, image:threads.image, id:threads.id, username:threads.username}
