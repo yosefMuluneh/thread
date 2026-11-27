@@ -10,6 +10,7 @@ import User from "../models/user.model";
 import { connectToDB } from "../mongoose";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { clerkClient } from "@clerk/nextjs/server";
+import { createNotification } from "@/lib/actions/notification.actions";
 
 
 export async function fetchCommunityDetails(id: string) {
@@ -321,6 +322,14 @@ export async function sendInvitationsToUsers(
           { $addToSet: { invitedTo: community._id } }
         ),
       ]);
+      await createNotification({
+        recipientId: invitee._id,
+        actorId: user._id,
+        type: "community_invitation",
+        entityType: "community",
+        entityId: community.id,
+        message: `invited you to join ${community.name}.`,
+      });
     })
   );
 
@@ -575,6 +584,17 @@ export async function reviewCommunityJoinRequest(
       { $pull: { joinRequests: { user: requestedUser._id } } }
     );
   }
+
+  await createNotification({
+    recipientId: requestedUser._id,
+    actorId: (await getAuthenticatedUser())._id,
+    type: decision === "approve" ? "community_join_approved" : "community_join_rejected",
+    entityType: "community",
+    entityId: community.id,
+    message: decision === "approve"
+      ? `approved your request to join ${community.name}.`
+      : `rejected your request to join ${community.name}.`,
+  });
 
   revalidatePath(`/communities/${community.id}`);
   revalidatePath("/communities");
