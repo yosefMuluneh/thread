@@ -137,27 +137,38 @@ export async function updateUser({
     const validatedProfile = userValidation.parse({
       profile_photo: image,
       name,
-      username,
+      username: username.trim().replace(/^@/, ""),
       bio,
     });
+    const normalizedUsername = validatedProfile.username.toLowerCase();
+    const existingUsername = await User.findOne({
+      username: normalizedUsername,
+      id: { $ne: authenticatedClerkId },
+    }).select("_id");
+    if (existingUsername) {
+      throw new Error("That username is already taken. Choose another one.");
+    }
 
-    await User.findOneAndUpdate(
+    const updatedUser = await User.findOneAndUpdate(
       { id: authenticatedClerkId },
       {
-        username: validatedProfile.username.toLowerCase(),
-        name: validatedProfile.name,
-        bio: validatedProfile.bio,
+        username: normalizedUsername,
+        name: validatedProfile.name.trim(),
+        bio: validatedProfile.bio.trim(),
         image: validatedProfile.profile_photo,
         onboarded: true,
       },
       { new: true, runValidators: true, upsert: true, setDefaultsOnInsert: true }
     );
+    if (!updatedUser) throw new Error("Unable to update your profile.");
 
-    if (path === "/profile/edit") {
-      revalidatePath(path);
-    }
+    revalidatePath("/");
+    revalidatePath("/profile/edit");
+    revalidatePath("/profile/[id]", "page");
+    revalidatePath(path);
+    revalidatePath(`/profile/${authenticatedClerkId}`);
   } catch (error: any) {
-    throw new Error(`Failed to create/update user: ${error.message}`);
+    throw new Error(`Failed to update profile: ${error.message}`);
   }
 }
 

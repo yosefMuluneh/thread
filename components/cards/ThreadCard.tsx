@@ -133,16 +133,24 @@ const ThreadCard = async ({
           {content && <Content content={content} />}
 
           {imageUrl && (
-            <div className="mt-4 overflow-hidden rounded-2xl border border-white/[0.08] bg-black/20">
+            <Link
+              href={imageUrl}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Open attached image in a new tab"
+              className="group/media relative mt-4 block aspect-[16/10] w-full overflow-hidden rounded-2xl border border-white/[0.08] bg-black/30 shadow-lg shadow-black/20"
+            >
               <Image
                 src={imageUrl}
                 alt="Image attached to thread"
-                width={1200}
-                height={900}
+                fill
                 sizes="(max-width: 768px) 100vw, 720px"
-                className="max-h-[620px] w-full object-contain transition duration-300 group-hover:scale-[1.005]"
+                className="object-contain p-1 transition duration-300 group-hover/media:scale-[1.025]"
               />
-            </div>
+              <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/45 to-transparent px-4 pb-3 pt-10 text-right text-[11px] font-medium text-white/75 opacity-0 transition group-hover/media:opacity-100">
+                Open image
+              </span>
+            </Link>
           )}
 
           {repostedThread && (

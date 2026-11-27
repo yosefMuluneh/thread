@@ -1,10 +1,11 @@
 import { currentUser } from '@clerk/nextjs/server';
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 
 import ThreadCard from "@/components/cards/ThreadCard";
 import { fetchThreads } from "@/lib/actions/thread.actions";
-import { fetchUser } from "@/lib/actions/user.actions";
+import { fetchUser, fetchUsers } from "@/lib/actions/user.actions";
 
 async function Home({
   searchParams,
@@ -20,7 +21,10 @@ async function Home({
 
   const pageParam = resolvedSearchParams.page;
   const pageNumber = Array.isArray(pageParam) ? pageParam[0] : pageParam;
-  const result = await fetchThreads(pageNumber ? Number(pageNumber) : 1, 30);
+  const [result, peopleResult] = await Promise.all([
+    fetchThreads(pageNumber ? Number(pageNumber) : 1, 30),
+    fetchUsers({ userId: user.id, pageNumber: 1, pageSize: 8 }),
+  ]);
 
   return (
     <div className="w-full">
@@ -41,6 +45,29 @@ async function Home({
           Catch up on conversations and ideas from your community.
         </p>
       </header>
+
+      <section aria-label="People to discover" className="mb-5 overflow-hidden rounded-2xl border border-white/[0.07] bg-[var(--surface-1)] px-4 py-4 sm:px-5">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-light-1">People</h2>
+          <Link href="/search" className="text-xs font-medium text-primary-500 transition hover:text-primary-400">Discover</Link>
+        </div>
+        <div className="flex gap-4 overflow-x-auto pb-1">
+          <Link href={`/profile/${user.id}`} className="flex w-14 shrink-0 flex-col items-center gap-2 text-center">
+            <span className="relative h-12 w-12 overflow-hidden rounded-full border-2 border-primary-500/70 p-0.5">
+              <Image src={userInfo.image} alt="Your profile" fill sizes="48px" className="rounded-full object-cover" />
+            </span>
+            <span className="w-full truncate text-[10px] font-medium text-gray-1">You</span>
+          </Link>
+          {peopleResult.users.map((person: any) => (
+            <Link key={person.id} href={`/profile/${person.id}`} className="flex w-14 shrink-0 flex-col items-center gap-2 text-center transition hover:opacity-80">
+              <span className="relative h-12 w-12 overflow-hidden rounded-full border border-white/10 p-0.5">
+                <Image src={person.image} alt={person.name} fill sizes="48px" className="rounded-full object-cover" />
+              </span>
+              <span className="w-full truncate text-[10px] font-medium text-gray-1">{person.name}</span>
+            </Link>
+          ))}
+        </div>
+      </section>
 
       <nav aria-label="Feed sections" className="mb-5 flex items-center gap-1 border-b border-white/[0.07]">
         <Link href="/" aria-current="page" className="relative -mb-px inline-flex min-h-11 items-center border-b-2 border-primary-500 px-4 text-sm font-semibold text-light-1">
