@@ -11,6 +11,7 @@ import User from "@/lib/models/user.model";
 export type NotificationType =
   | "follow"
   | "like"
+  | "repost"
   | "comment"
   | "reply"
   | "community_invitation"
