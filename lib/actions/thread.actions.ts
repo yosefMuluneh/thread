@@ -424,7 +424,7 @@ export async function fetchThreadsByTopic({
 export async function fetchCommunityThreads(pageNumber = 1, pageSize = 30) {
   await connectToDB();
   const authenticatedUser = await getAuthenticatedUser();
-  const user = await User.findById(authenticatedUser._id).select("communities").lean();
+  const user = (await User.findById(authenticatedUser._id).select("communities").lean()) as { communities?: mongoose.Types.ObjectId[] } | null;
   const communityIds = user?.communities ?? [];
   if (!communityIds.length) return { posts: [], isNext: false };
 
@@ -449,7 +449,7 @@ export async function fetchCommunityThreads(pageNumber = 1, pageSize = 30) {
 export async function fetchFollowingThreads(pageNumber = 1, pageSize = 30) {
   await connectToDB();
   const authenticatedUser = await getAuthenticatedUser();
-  const user = await User.findById(authenticatedUser._id).select("following").lean();
+  const user = (await User.findById(authenticatedUser._id).select("following").lean()) as { following?: mongoose.Types.ObjectId[] } | null;
   const followedUserIds = user?.following ?? [];
   if (!followedUserIds.length) return { posts: [], isNext: false };
 
