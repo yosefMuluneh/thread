@@ -92,15 +92,25 @@ const ThreadCard = async ({
           : "bg-[var(--surface-1)] p-5 shadow-lg shadow-black/10 sm:p-6"
       }`}
     >
-      <div className="flex items-start gap-3.5 sm:gap-4">
+      <div className="flex flex-col w-full items-start gap-3.5 sm:gap-4">
         <div className="flex shrink-0 flex-col items-center">
           {author?.id ? (
+            <div className="flex gap-3 w-full items-center">
             <Link href={`/profile/${author.id}`} className="relative h-11 w-11 overflow-hidden rounded-full ring-2 ring-white/[0.08] transition hover:ring-primary-500/70 sm:h-12 sm:w-12">
               <Image src={author.image} alt={`${author.name}'s profile picture`} fill sizes="44px" className="object-cover" />
             </Link>
+            <Link href={`/profile/${author.id}`} className="flex max-w-full flex-col items-baseline gap-x-2 rounded-sm hover:opacity-80">
+              <span className="truncate text-sm font-semibold tracking-tight text-light-1 sm:text-[15px]">{author.name}</span>
+              <span className="truncate text-xs text-gray-1 sm:text-sm">@{author.username}</span>
+            </Link>
+            </div>
           ) : (
-            <div className="relative h-11 w-11 overflow-hidden rounded-full">
+            <div className="flex gap-1 w-full">
               <Image src={author.image} alt="Profile picture" fill sizes="44px" className="object-cover" />
+              <div className="flex flex-col items-baseline gap-x-2">
+                  <span className="text-sm font-semibold text-light-1 sm:text-base">{author.name}</span>
+                  <span className="text-sm text-gray-1">@{author.username}</span>
+                </div>
             </div>
           )}
           <div className="thread-card_bar" />
@@ -108,20 +118,6 @@ const ThreadCard = async ({
 
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              {author?.id ? (
-                <Link href={`/profile/${author.id}`} className="inline-flex max-w-full flex-wrap items-baseline gap-x-2 rounded-sm hover:opacity-80">
-                  <span className="truncate text-sm font-semibold tracking-tight text-light-1 sm:text-[15px]">{author.name}</span>
-                  <span className="truncate text-xs text-gray-1 sm:text-sm">@{author.username}</span>
-                </Link>
-              ) : (
-                <div className="flex flex-wrap items-baseline gap-x-2">
-                  <span className="text-sm font-semibold text-light-1 sm:text-base">{author.name}</span>
-                  <span className="text-sm text-gray-1">@{author.username}</span>
-                </div>
-              )}
-            </div>
-
             {currentUserId === author.id && (
               <div className="shrink-0">
                 <MorePopup id={JSON.stringify(id)} />
