@@ -5,7 +5,7 @@ import Image from "next/image"
 import { ImagePlus, LoaderCircle, X } from "lucide-react"
 import { usePathname, useRouter } from "next/navigation"
 import { useUploadThing } from "@/lib/validations/uploadthing"
-import { editThread } from "@/lib/actions/user.actions"
+import { updateThreadContent } from "@/lib/actions/edit-thread.actions"
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Textarea } from "@/components/ui/textarea"
@@ -67,7 +67,7 @@ const EditThread = ({ userId, thread }: { userId: string; thread: string }) => {
         imageUrl = uploaded?.[0]?.url ?? null
         if (!imageUrl) throw new Error("Image upload failed. Please try again.")
       }
-      await editThread(initialThread._id, text, imageUrl, pathname)
+      await updateThreadContent(initialThread._id, text, imageUrl, pathname)
       router.push("/")
       router.refresh()
     } catch (error) {
