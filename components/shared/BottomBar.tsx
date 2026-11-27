@@ -9,9 +9,7 @@ import { useAuth } from "@clerk/nextjs"
 const BottomBar = ({ unreadCount = 0 }: { unreadCount?: number }) => {
   const pathname = usePathname()
   const { userId } = useAuth()
-  const mobileLinks = sidebarLinks.filter(
-    (link) => link.route !== "/search" && link.route !== "/create-thread"
-  )
+  const mobileLinks = sidebarLinks.filter((link) => link.route !== "/search")
 
   return (
     <nav className="bottombar" aria-label="Mobile navigation">
