@@ -117,11 +117,13 @@ const page = async ({
                   />
                   {isCreator && member.id !== user.id && (
                     <form
-                      action={removeCommunityMember.bind(
-                        null,
-                        communityDetail.id,
-                        member.id
-                      )}
+                      action={async () => {
+                        "use server";
+                        await removeCommunityMember(
+                          communityDetail.id,
+                          member.id
+                        );
+                      }}
                       className="-mt-8 flex justify-end"
                     >
                       <button
