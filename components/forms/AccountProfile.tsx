@@ -1,5 +1,5 @@
 'use client'
-import React, { use, useState } from 'react'
+import React, { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import {
   Form,
@@ -72,34 +72,31 @@ const AccountProfile = ({ user, btnTitle } : Props) => {
       }
 
     async function onSubmit(values: z.infer<typeof userValidation>) {
-        const blob = values.profile_photo;
-        const hasImageChanged = isBase64Image(blob)
-
-        if(hasImageChanged){
-          const imgRes = await startUpload(files)
-          
-          if(imgRes && imgRes[0].url){
-            values.profile_photo = imgRes[0].url
-          }
+      try {
+        let profileImage = values.profile_photo;
+        if (isBase64Image(profileImage)) {
+          if (!files.length) throw new Error('Choose a profile image before saving.');
+          const uploaded = await startUpload(files);
+          profileImage = uploaded?.[0]?.url ?? '';
+          if (!profileImage) throw new Error('Profile image upload failed. Please try again.');
         }
-
-        await updateUser(
-          {
-            userId: user.id,
-            username: values.username,
-            name: values.name,
-            bio: values.bio,
-            image: values.profile_photo,
-            path: pathname
-          }
-          )
-
-          if(pathname === '/profile/edit'){
-            router.back()
-          }else{
-            router.push('/')
-          }
+        await updateUser({
+          userId: user.id,
+          username: values.username,
+          name: values.name,
+          bio: values.bio,
+          image: profileImage,
+          path: pathname,
+        });
+        router.push(`/profile/${user.id}`);
+        router.refresh();
+      } catch (error) {
+        form.setError('root.server', {
+          type: 'server',
+          message: error instanceof Error ? error.message : 'Unable to update your profile.',
+        });
       }
+    }
 
 
   return (
@@ -197,7 +194,8 @@ const AccountProfile = ({ user, btnTitle } : Props) => {
           </FormItem>
         )}
       />
-      <Button type="submit" className='bg-primary-500'>{btnTitle}</Button>
+      {form.formState.errors.root?.server?.message && <p role="alert" className="text-sm text-red-400">{form.formState.errors.root.server.message}</p>}
+      <Button type="submit" disabled={form.formState.isSubmitting} className="min-h-11 rounded-full bg-primary-500 px-6 font-semibold text-white hover:bg-primary-600 disabled:opacity-60">{form.formState.isSubmitting ? 'Saving...' : btnTitle}</Button>
     </form>
   </Form>
   )
