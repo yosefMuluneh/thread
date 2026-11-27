@@ -601,6 +601,62 @@ export async function reviewCommunityJoinRequest(
   return { success: true };
 }
 
+export async function removeCommunityMember(
+  communityId: string,
+  memberUserId: string
+) {
+  const owner = await getAuthenticatedUser();
+  const community = await Community.findOne({ id: communityId });
+  if (!community) throw new Error("Community not found.");
+
+  const isCreator = community.createdBy?.toString() === owner._id.toString();
+  if (!isCreator) {
+    throw new Error("Only the community owner can remove members.");
+  }
+
+  const member = await User.findOne({ id: memberUserId });
+  if (!member) throw new Error("Community member was not found.");
+  if (member._id.equals(owner._id)) {
+    throw new Error("The community owner cannot remove themselves.");
+  }
+
+  const isListedMember = (community.members ?? []).some(
+    (id: any) => id.toString() === member._id.toString()
+  );
+  if (!isListedMember) throw new Error("This user is not a community member.");
+
+  const clerk = await clerkClient();
+  const { data: memberships } = await clerk.users.getOrganizationMembershipList({
+    userId: member.id,
+    limit: 500,
+  });
+  const isClerkMember = memberships.some(
+    (membership) => membership.organization.id === community.id
+  );
+
+  if (isClerkMember) {
+    await clerk.organizations.deleteOrganizationMembership({
+      organizationId: community.id,
+      userId: member.id,
+    });
+  }
+
+  await Promise.all([
+    Community.updateOne(
+      { _id: community._id },
+      { $pull: { members: member._id } }
+    ),
+    User.updateOne(
+      { _id: member._id },
+      { $pull: { communities: community._id } }
+    ),
+  ]);
+
+  revalidatePath(`/communities/${community.id}`);
+  revalidatePath("/communities");
+  return { success: true };
+}
+
 export async function toggleCommunityMembership(
   communityId: string
 ): Promise<{ joined: boolean; requested: boolean }> {
