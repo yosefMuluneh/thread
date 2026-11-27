@@ -11,6 +11,7 @@ import User from "../models/user.model";
 import { connectToDB } from "../mongoose";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { userValidation } from "@/lib/validations/user";
+import { createNotification } from "@/lib/actions/notification.actions";
 
 export async function toggleFollowUser(targetUserId: string): Promise<{ following: boolean }> {
   try {
@@ -55,6 +56,17 @@ export async function toggleFollowUser(targetUserId: string): Promise<{ followin
           { $addToSet: { followers: authenticatedUser._id } }
         ),
       ]);
+    }
+
+    if (!isFollowing) {
+      await createNotification({
+        recipientId: targetUser._id,
+        actorId: authenticatedUser._id,
+        type: "follow",
+        entityType: "user",
+        entityId: authenticatedUser.id,
+        message: "started following you.",
+      });
     }
 
     revalidatePath(`/profile/${targetUser.id}`);
