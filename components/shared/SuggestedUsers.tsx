@@ -1,5 +1,3 @@
-"use client";
-
 import FollowButton from "@/components/shared/FollowButton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import UserCard from "../cards/UserCard";
