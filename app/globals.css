@@ -205,8 +205,23 @@
 
 /* Shared shadcn refinements */
 .tab {
-  @apply flex min-h-[52px] flex-1 items-center gap-3 text-light-2 transition-colors data-[state=active]:text-light-1 !important;
+  @apply flex min-h-[52px] items-center gap-3 text-light-2 transition-colors !important;
   background: transparent;
+}
+
+.tab[role="tablist"] {
+  @apply w-full justify-start gap-2 border-b border-white/[0.08] p-0;
+}
+
+.tab[role="tab"] {
+  @apply relative flex-1 justify-center rounded-none border-b-2 border-transparent px-3 py-2;
+}
+
+.tab[role="tab"][data-state="active"] {
+  color: var(--text-primary);
+  border-bottom-color: var(--accent);
+  background: transparent;
+  box-shadow: none;
 }
 
 .no-focus {
