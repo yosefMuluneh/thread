@@ -99,6 +99,11 @@ export async function fetchUser(userId: string) {
         model: User,
         select: "id name username image",
       },
+      {
+        path: "followers",
+        model: User,
+        select: "id name username image",
+      },
     ]);
   } catch (error: any) {
     throw new Error(`Failed to fetch user: ${error.message}`);

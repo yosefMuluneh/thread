@@ -11,7 +11,7 @@ const SuggestedCommunities = ({ communities } : { communities : any[]}) => {
         {
           communities.map((community) => (
             <div key={community.id} className='mb-5'>
-              <CommunityCard id={community.id} name={community.name} username={community.username} imgUrl={community.image} bio={community.bio} members={community.members}/>
+              <CommunityCard id={community.id} name={community.name} username={community.username} imgUrl={community.image} bio={community.bio} members={community.members} actionLabel="Join"/>
             </div>
           ))
         }
