@@ -10,6 +10,7 @@ import User from "../models/user.model";
 import { connectToDB } from "../mongoose";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { clerkClient } from "@clerk/nextjs/server";
+import { createNotification } from "@/lib/actions/notification.actions";
 
 
 export async function fetchCommunityDetails(id: string) {
@@ -321,6 +322,14 @@ export async function sendInvitationsToUsers(
           { $addToSet: { invitedTo: community._id } }
         ),
       ]);
+      await createNotification({
+        recipientId: invitee._id,
+        actorId: user._id,
+        type: "community_invitation",
+        entityType: "community",
+        entityId: community.id,
+        message: `invited you to join ${community.name}.`,
+      });
     })
   );
 
@@ -575,6 +584,73 @@ export async function reviewCommunityJoinRequest(
       { $pull: { joinRequests: { user: requestedUser._id } } }
     );
   }
+
+  await createNotification({
+    recipientId: requestedUser._id,
+    actorId: (await getAuthenticatedUser())._id,
+    type: decision === "approve" ? "community_join_approved" : "community_join_rejected",
+    entityType: "community",
+    entityId: community.id,
+    message: decision === "approve"
+      ? `approved your request to join ${community.name}.`
+      : `rejected your request to join ${community.name}.`,
+  });
+
+  revalidatePath(`/communities/${community.id}`);
+  revalidatePath("/communities");
+  return { success: true };
+}
+
+export async function removeCommunityMember(
+  communityId: string,
+  memberUserId: string
+) {
+  const owner = await getAuthenticatedUser();
+  const community = await Community.findOne({ id: communityId });
+  if (!community) throw new Error("Community not found.");
+
+  const isCreator = community.createdBy?.toString() === owner._id.toString();
+  if (!isCreator) {
+    throw new Error("Only the community owner can remove members.");
+  }
+
+  const member = await User.findOne({ id: memberUserId });
+  if (!member) throw new Error("Community member was not found.");
+  if (member._id.equals(owner._id)) {
+    throw new Error("The community owner cannot remove themselves.");
+  }
+
+  const isListedMember = (community.members ?? []).some(
+    (id: any) => id.toString() === member._id.toString()
+  );
+  if (!isListedMember) throw new Error("This user is not a community member.");
+
+  const clerk = await clerkClient();
+  const { data: memberships } = await clerk.users.getOrganizationMembershipList({
+    userId: member.id,
+    limit: 500,
+  });
+  const isClerkMember = memberships.some(
+    (membership) => membership.organization.id === community.id
+  );
+
+  if (isClerkMember) {
+    await clerk.organizations.deleteOrganizationMembership({
+      organizationId: community.id,
+      userId: member.id,
+    });
+  }
+
+  await Promise.all([
+    Community.updateOne(
+      { _id: community._id },
+      { $pull: { members: member._id } }
+    ),
+    User.updateOne(
+      { _id: member._id },
+      { $pull: { communities: community._id } }
+    ),
+  ]);
 
   revalidatePath(`/communities/${community.id}`);
   revalidatePath("/communities");

@@ -9,6 +9,7 @@ import User from "../models/user.model";
 import Thread from "../models/thread.model";
 import Community from "../models/community.model";
 import mongoose, { FilterQuery, SortOrder } from "mongoose";
+import { createNotification } from "@/lib/actions/notification.actions";
 
 export async function fetchThreads(pageNumber = 1, pageSize = 20) {
   await connectToDB();
@@ -64,18 +65,31 @@ interface Params {
   taggedUsers?: string[],
   topics?: string[],
   repost?: string
+  imageUrl?: string | null
 }
 
 
-export async function createThread({ text, author, communityId, path, taggedUsers = [], topics=[],repost }: Params
+export async function createThread({ text, author, communityId, path, taggedUsers = [], topics = [], repost, imageUrl }: Params
 ) {
   try {
     const authenticatedUser = await getAuthenticatedUser();
     if (!mongoose.isValidObjectId(author) || authenticatedUser._id.toString() !== author) {
       throw new Error("You are not allowed to create a thread for this user.");
     }
-    if (!text || text.trim().length < 3 || text.length > 5000) {
-      throw new Error("Thread text must be between 3 and 5000 characters.");
+    const normalizedText = (text ?? "").trim();
+    if ((!normalizedText && !imageUrl) || normalizedText.length > 5000) {
+      throw new Error("Add text or an image. Thread text cannot exceed 5000 characters.");
+    }
+    if (imageUrl) {
+      let parsedImageUrl: URL;
+      try {
+        parsedImageUrl = new URL(imageUrl);
+      } catch {
+        throw new Error("The uploaded image URL is invalid.");
+      }
+      if (parsedImageUrl.protocol !== "https:") {
+        throw new Error("Thread images must use a secure HTTPS URL.");
+      }
     }
     const communityIdObject = communityId
       ? await Community.findOne({ id: communityId }, { _id: 1, members: 1 })
@@ -95,7 +109,8 @@ export async function createThread({ text, author, communityId, path, taggedUser
     }
 
     const createdThread = await Thread.create({
-        text,
+        text: normalizedText,
+        imageUrl: imageUrl ?? null,
         author,
         upvotes: 0,
         downvotes: 0,
@@ -137,6 +152,14 @@ export async function createThread({ text, author, communityId, path, taggedUser
         { _id: originalThread._id },
         { $addToSet: { repostedIn: createdThread._id } }
       );
+      await createNotification({
+        recipientId: originalThread.author,
+        actorId: authenticatedUser._id,
+        type: "repost",
+        entityType: "thread",
+        entityId: originalThread._id.toString(),
+        message: "reposted your thread.",
+      });
     }
 
     revalidatePath(path);
@@ -314,6 +337,15 @@ export async function addComment(
 
     // Save the updated original thread to the database
     await originalThread.save();
+
+    await createNotification({
+      recipientId: originalThread.author,
+      actorId: authenticatedUser._id,
+      type: originalThread.parentId ? "reply" : "comment",
+      entityType: "thread",
+      entityId: threadId,
+      message: originalThread.parentId ? "replied to your comment." : "commented on your thread.",
+    });
 
     revalidatePath(path);
   } catch (err) {

@@ -26,6 +26,7 @@ const page = async (
                 currentUserId={user?.id}
                 parentId={thread.parentId}
                 content={thread.text}
+                imageUrl={thread.imageUrl}
                 author={thread.author}
                    
                 community={thread.community}

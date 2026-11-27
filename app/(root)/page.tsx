@@ -38,6 +38,7 @@ async function Home({
                   currentUserId={user.id}
                   parentId={post.parentId}
                   content={post.text}
+                  imageUrl={post.imageUrl}
                   author={post.author}
                   community={post.community}
                   createdAt={post.createdAt}

@@ -11,6 +11,7 @@ import User from "../models/user.model";
 import { connectToDB } from "../mongoose";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { userValidation } from "@/lib/validations/user";
+import { createNotification } from "@/lib/actions/notification.actions";
 
 export async function toggleFollowUser(targetUserId: string): Promise<{ following: boolean }> {
   try {
@@ -55,6 +56,17 @@ export async function toggleFollowUser(targetUserId: string): Promise<{ followin
           { $addToSet: { followers: authenticatedUser._id } }
         ),
       ]);
+    }
+
+    if (!isFollowing) {
+      await createNotification({
+        recipientId: targetUser._id,
+        actorId: authenticatedUser._id,
+        type: "follow",
+        entityType: "user",
+        entityId: authenticatedUser.id,
+        message: "started following you.",
+      });
     }
 
     revalidatePath(`/profile/${targetUser.id}`);
@@ -457,7 +469,7 @@ export async function handleLike(threadId: string, _userId: string, pathname: st
     const authenticatedUser = await getAuthenticatedUser();
     if (!mongoose.isValidObjectId(threadId)) throw new Error("Invalid thread ID.");
 
-    const thread = await Thread.findById(threadId).select("likedBy upvotes");
+    const thread = await Thread.findById(threadId).select("author likedBy upvotes");
     if (!thread) throw new Error("Thread not found.");
 
     const alreadyLiked = thread.likedBy.some(
@@ -476,6 +488,14 @@ export async function handleLike(threadId: string, _userId: string, pathname: st
         { $addToSet: { likedBy: authenticatedUser._id }, $inc: { upvotes: 1 } }
       );
       await User.updateOne({ _id: authenticatedUser._id }, { $addToSet: { likedThreads: thread._id } });
+      await createNotification({
+        recipientId: thread.author,
+        actorId: authenticatedUser._id,
+        type: "like",
+        entityType: "thread",
+        entityId: thread._id.toString(),
+        message: "liked your thread.",
+      });
     }
 
     const updatedThread = await Thread.findById(thread._id).select("upvotes");

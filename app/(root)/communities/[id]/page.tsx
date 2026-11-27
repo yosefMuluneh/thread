@@ -13,6 +13,7 @@ import {
   fetchCommunityDetails,
   fetchCommunityAdminData,
   fetchMyCommunities,
+  removeCommunityMember,
 } from "@/lib/actions/community.actions";
 import CommunityAdminPanel from "@/components/shared/CommunityAdminPanel";
 import UserCard from "@/components/cards/UserCard";
@@ -105,14 +106,37 @@ const page = async ({
           <TabsContent value="members" className="w-full text-light-1">
             <section className="mt-9 flex flex-col gap-10">
               {communityDetail.members?.map((member: any) => (
-                <UserCard
-                  key={member.id}
-                  id={member.id}
-                  name={member.name}
-                  username={member.username}
-                  imgUrl={member.image}
-                  personType="User"
-                />
+                <div key={member.id} className="flex flex-col">
+                  <UserCard
+                    id={member.id}
+                    name={member.name}
+                    username={member.username}
+                    imgUrl={member.image}
+                    personType="User"
+                    currentUserId={user.id}
+                    profileLink
+                    hideViewButton
+                  />
+                  {isCreator && member.id !== user.id && (
+                    <form
+                      action={async () => {
+                        "use server";
+                        await removeCommunityMember(
+                          communityDetail.id,
+                          member.id
+                        );
+                      }}
+                      className="mt-3 flex justify-end"
+                    >
+                      <button
+                        type="submit"
+                        className="rounded-lg border border-red-500/50 px-3 py-1.5 text-small-semibold text-red-400 transition hover:bg-red-500/10"
+                      >
+                        Remove member
+                      </button>
+                    </form>
+                  )}
+                </div>
               ))}
             </section>
           </TabsContent>

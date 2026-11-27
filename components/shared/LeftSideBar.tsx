@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { SignOutButton, Show, useAuth } from '@clerk/nextjs'
 
-export const LeftSideBar = () => {
+export const LeftSideBar = ({ unreadCount = 0 }: { unreadCount?: number }) => {
 
   const pathname = usePathname();
   const {userId } = useAuth();
@@ -32,7 +32,7 @@ export const LeftSideBar = () => {
               width={24}
               height={24}
               />
-              <p className='text-light-1 max-lg:hidden'>{link.label}</p>
+              <div className="flex flex-1 items-center justify-between gap-2 max-lg:hidden"><p className="text-light-1">{link.label}</p>{link.route === "/notifications" && unreadCount > 0 && <span className="min-w-5 rounded-full bg-primary-500 px-1.5 py-0.5 text-center text-xs font-semibold text-white">{unreadCount > 99 ? "99+" : unreadCount}</span>}</div>
             </Link>
             )})
         }

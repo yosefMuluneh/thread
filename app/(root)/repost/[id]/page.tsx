@@ -42,6 +42,7 @@ const page =  async({ params } : { params: Promise<{ id: string }> }) => {
             currentUserId={user?.id}
             parentId={thread.parentId}
             content={thread.text}
+            imageUrl={thread.imageUrl}
             author={thread.author}
             community={thread.community}
             createdAt={thread.createdAt}
