@@ -18,8 +18,26 @@ const TopBar = () => {
         </span>
       </Link>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3">
         <Show when="signed-in">
+          <div className="flex items-center gap-2 md:hidden">
+            <Link
+              href="/search"
+              aria-label="Search"
+              title="Search"
+              className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] transition hover:border-primary-500/40 hover:bg-primary-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+            >
+              <Image src="/assets/search.svg" alt="" width={19} height={19} />
+            </Link>
+            <Link
+              href="/create-thread"
+              aria-label="Start thread"
+              title="Start thread"
+              className="flex h-10 w-10 items-center justify-center rounded-xl border border-primary-500/30 bg-primary-500/15 transition hover:bg-primary-500/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+            >
+              <Image src="/assets/create.svg" alt="" width={19} height={19} />
+            </Link>
+          </div>
           <div className="hidden sm:block">
             <OrganizationSwitcher
               appearance={{
