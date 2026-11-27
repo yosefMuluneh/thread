@@ -77,11 +77,14 @@ async function Home({
       </section>
 
       <nav aria-label="Feed sections" className="mb-5 flex items-center gap-1 border-b border-white/[0.07]">
-        <Link href="/" aria-current="page" className="relative -mb-px inline-flex min-h-11 items-center border-b-2 border-primary-500 px-4 text-sm font-semibold text-light-1">
+        <Link href="/" aria-current={activeTab === "for-you" ? "page" : undefined} className={`relative -mb-px inline-flex min-h-11 items-center border-b-2 px-4 text-sm transition ${activeTab === "for-you" ? "border-primary-500 font-semibold text-light-1" : "border-transparent font-medium text-gray-1 hover:bg-white/[0.04] hover:text-light-1"}`}>
           For you
         </Link>
-        <Link href="/communities" className="inline-flex min-h-11 items-center rounded-t-xl px-4 text-sm font-medium text-gray-1 transition hover:bg-white/[0.04] hover:text-light-1">
+        <Link href="/?tab=communities" aria-current={activeTab === "communities" ? "page" : undefined} className={`relative -mb-px inline-flex min-h-11 items-center border-b-2 px-4 text-sm transition ${activeTab === "communities" ? "border-primary-500 font-semibold text-light-1" : "border-transparent font-medium text-gray-1 hover:bg-white/[0.04] hover:text-light-1"}`}>
           Communities
+        </Link>
+        <Link href="/?tab=following" aria-current={activeTab === "following" ? "page" : undefined} className={`relative -mb-px inline-flex min-h-11 items-center border-b-2 px-4 text-sm transition ${activeTab === "following" ? "border-primary-500 font-semibold text-light-1" : "border-transparent font-medium text-gray-1 hover:bg-white/[0.04] hover:text-light-1"}`}>
+          Following
         </Link>
       </nav>
 
