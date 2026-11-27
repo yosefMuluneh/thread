@@ -240,3 +240,37 @@
   border-top: 1px solid var(--surface-border);
   border-bottom: 1px solid var(--surface-border);
 }
+
+.main-container > div {
+  width: 100%;
+  max-width: 760px;
+}
+
+.bottombar_link.bg-primary-500 {
+  background: var(--accent-soft);
+  color: #d0caff;
+}
+
+.topbar a:focus-visible,
+.leftsidebar_link:focus-visible,
+.bottombar_link:focus-visible {
+  outline: 2px solid rgba(139, 124, 255, 0.8);
+  outline-offset: 3px;
+}
+
+@media (max-width: 1023px) {
+  .main-container {
+    padding-top: 6.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
