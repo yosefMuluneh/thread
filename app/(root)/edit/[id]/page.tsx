@@ -24,7 +24,7 @@ const page = async ({ params } : { params: Promise<{ id: string }> }) => {
 
     return (
         <>
-        <h1 className='head-text'>Create Thread</h1>
+        <h1 className='head-text'>Edit thread</h1>
         <EditThread userId={userId} thread={JSON.stringify(thread)} />
         </>
     )
