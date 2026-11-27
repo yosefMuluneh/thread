@@ -45,7 +45,7 @@ const TopBar = () => {
             <button
               type="button"
               aria-label="Sign out"
-              className="hidden h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] transition hover:border-white/20 hover:bg-white/[0.07] sm:flex"
+              className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] transition hover:border-white/20 hover:bg-white/[0.07]"
             >
               <Image src="/assets/logout.svg" alt="" width={18} height={18} />
             </button>
