@@ -42,6 +42,15 @@ async function Home({
         </p>
       </header>
 
+      <nav aria-label="Feed sections" className="mb-5 flex items-center gap-1 border-b border-white/[0.07]">
+        <Link href="/" aria-current="page" className="relative -mb-px inline-flex min-h-11 items-center border-b-2 border-primary-500 px-4 text-sm font-semibold text-light-1">
+          For you
+        </Link>
+        <Link href="/communities" className="inline-flex min-h-11 items-center rounded-t-xl px-4 text-sm font-medium text-gray-1 transition hover:bg-white/[0.04] hover:text-light-1">
+          Communities
+        </Link>
+      </nav>
+
       <section aria-label="Latest threads" className="flex flex-col gap-4 sm:gap-5">
         {result.posts.length === 0 ? (
           <div className="flex flex-col items-center rounded-3xl border border-dashed border-white/10 bg-white/[0.02] px-6 py-14 text-center">
