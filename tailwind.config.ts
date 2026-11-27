@@ -15,7 +15,8 @@ module.exports = {
         "2xl": "1400px",
       },
     },
-    fontSize: {
+    extend: {
+      fontSize: {
       "heading1-bold": [
         "36px",
         {
@@ -171,7 +172,6 @@ module.exports = {
         },
       ],
     },
-    extend: {
       colors: {
         "primary-500": "#877EFF",
         "secondary-500": "#FFB620",
