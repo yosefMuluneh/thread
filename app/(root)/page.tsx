@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 
 import ThreadCard from "@/components/cards/ThreadCard";
-import { fetchThreads } from "@/lib/actions/thread.actions";
+import { fetchThreads, fetchCommunityThreads, fetchFollowingThreads } from "@/lib/actions/thread.actions";
 import { fetchUser, fetchUsers } from "@/lib/actions/user.actions";
 
 async function Home({
@@ -21,8 +21,15 @@ async function Home({
 
   const pageParam = resolvedSearchParams.page;
   const pageNumber = Array.isArray(pageParam) ? pageParam[0] : pageParam;
+  const activeTab = ["communities", "following"].includes(String(resolvedSearchParams.tab))
+    ? String(resolvedSearchParams.tab)
+    : "for-you";
   const [result, peopleResult] = await Promise.all([
-    fetchThreads(pageNumber ? Number(pageNumber) : 1, 30),
+    activeTab === "communities"
+      ? fetchCommunityThreads(pageNumber ? Number(pageNumber) : 1, 30)
+      : activeTab === "following"
+        ? fetchFollowingThreads(pageNumber ? Number(pageNumber) : 1, 30)
+        : fetchThreads(pageNumber ? Number(pageNumber) : 1, 30),
     fetchUsers({ userId: user.id, pageNumber: 1, pageSize: 8 }),
   ]);
 
@@ -70,21 +77,24 @@ async function Home({
       </section>
 
       <nav aria-label="Feed sections" className="mb-5 flex items-center gap-1 border-b border-white/[0.07]">
-        <Link href="/" aria-current="page" className="relative -mb-px inline-flex min-h-11 items-center border-b-2 border-primary-500 px-4 text-sm font-semibold text-light-1">
+        <Link href="/" aria-current={activeTab === "for-you" ? "page" : undefined} className={`relative -mb-px inline-flex min-h-11 items-center border-b-2 px-4 text-sm transition ${activeTab === "for-you" ? "border-primary-500 font-semibold text-light-1" : "border-transparent font-medium text-gray-1 hover:bg-white/[0.04] hover:text-light-1"}`}>
           For you
         </Link>
-        <Link href="/communities" className="inline-flex min-h-11 items-center rounded-t-xl px-4 text-sm font-medium text-gray-1 transition hover:bg-white/[0.04] hover:text-light-1">
+        <Link href="/?tab=communities" aria-current={activeTab === "communities" ? "page" : undefined} className={`relative -mb-px inline-flex min-h-11 items-center border-b-2 px-4 text-sm transition ${activeTab === "communities" ? "border-primary-500 font-semibold text-light-1" : "border-transparent font-medium text-gray-1 hover:bg-white/[0.04] hover:text-light-1"}`}>
           Communities
+        </Link>
+        <Link href="/?tab=following" aria-current={activeTab === "following" ? "page" : undefined} className={`relative -mb-px inline-flex min-h-11 items-center border-b-2 px-4 text-sm transition ${activeTab === "following" ? "border-primary-500 font-semibold text-light-1" : "border-transparent font-medium text-gray-1 hover:bg-white/[0.04] hover:text-light-1"}`}>
+          Following
         </Link>
       </nav>
 
-      <section aria-label="Latest threads" className="flex flex-col gap-4 sm:gap-5">
+      <section aria-label={activeTab === "communities" ? "Community threads" : activeTab === "following" ? "Threads from people you follow" : "Latest threads"} className="flex flex-col gap-4 sm:gap-5">
         {result.posts.length === 0 ? (
           <div className="flex flex-col items-center rounded-3xl border border-dashed border-white/10 bg-white/[0.02] px-6 py-14 text-center">
             <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-500/10 text-2xl text-primary-500">✦</div>
-            <h2 className="text-lg font-semibold text-light-1">Your feed is quiet</h2>
+            <h2 className="text-lg font-semibold text-light-1">{activeTab === "communities" ? "No community threads yet" : activeTab === "following" ? "No threads from people you follow yet" : "Your feed is quiet"}</h2>
             <p className="mt-2 max-w-sm text-sm leading-6 text-gray-1">
-              Start a conversation or explore communities to find people and topics you care about.
+              {activeTab === "communities" ? "Join a community and its conversations will appear here." : activeTab === "following" ? "Follow people to see their conversations here." : "Start a conversation or explore communities to find people and topics you care about."}
             </p>
             <div className="mt-5 flex flex-wrap justify-center gap-3">
               <Link href="/create-thread" className="rounded-full bg-primary-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-600">

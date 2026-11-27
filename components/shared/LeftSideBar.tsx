@@ -17,6 +17,14 @@ export const LeftSideBar = ({ unreadCount = 0 }: { unreadCount?: number }) => {
           Workspace
         </p>
 
+        <Link
+          href="/create-thread"
+          className="mb-5 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary-500 px-4 text-sm font-semibold text-white shadow-lg shadow-primary-500/20 transition hover:bg-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-dark-2"
+        >
+          <span aria-hidden="true" className="text-lg leading-none">＋</span>
+          <span>Start thread</span>
+        </Link>
+
         <nav aria-label="Main navigation" className="flex flex-col gap-1.5">
           {sidebarLinks.map((link) => {
             const isActive =

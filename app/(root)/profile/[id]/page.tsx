@@ -48,17 +48,19 @@ const page = async ({ params } : { params: Promise<{ id: string }> }) => {
 
     return (
         <section>
-            <ProfileHeader
-            accountId={userInfo.id}
-            authUserId={user.id}
-            name={userInfo.name}
-            username={userInfo.username}
-            imgUrl={userInfo.image}
-            bio={userInfo.bio}
-            following={isFollowing} />
-
-        <div className='mt-9'>
+            <div className='mt-9'>
             <Tabs defaultValue='threads' className='w-full'>
+                <ProfileHeader
+                    accountId={userInfo.id}
+                    authUserId={user.id}
+                    name={userInfo.name}
+                    username={userInfo.username}
+                    imgUrl={userInfo.image}
+                    bio={userInfo.bio}
+                    following={isFollowing}
+                    followerCount={userInfo.followers?.length ?? 0}
+                    followingCount={userInfo.following?.length ?? 0}
+                />
                 <TabsList className='tab'>
                     {
                         profileTabs.map((tab)=>(
@@ -81,18 +83,6 @@ const page = async ({ params } : { params: Promise<{ id: string }> }) => {
                             </TabsTrigger>
                         ))
                     }
-                    <TabsTrigger value='following' className='tab'>
-                        <p>Following</p>
-                        <p className='ml-1 rounded-sm bg-light-4 px-2 py-1 !item-tiny-medium text-light-2'>
-                            {userInfo.following?.length ?? 0}
-                        </p>
-                    </TabsTrigger>
-                    <TabsTrigger value='followers' className='tab'>
-                        <p>Followers</p>
-                        <p className='ml-1 rounded-sm bg-light-4 px-2 py-1 !item-tiny-medium text-light-2'>
-                            {userInfo.followers?.length ?? 0}
-                        </p>
-                    </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value='following' className='w-full text-light-1'>

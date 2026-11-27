@@ -9,11 +9,12 @@ import { useAuth } from "@clerk/nextjs"
 const BottomBar = ({ unreadCount = 0 }: { unreadCount?: number }) => {
   const pathname = usePathname()
   const { userId } = useAuth()
+  const mobileLinks = sidebarLinks.filter((link) => link.route !== "/search")
 
   return (
     <nav className="bottombar" aria-label="Mobile navigation">
       <div className="bottombar_container">
-        {sidebarLinks.map((link) => {
+        {mobileLinks.map((link) => {
           const isActive =
             (pathname.includes(link.route) && link.route.length > 1) ||
             pathname === link.route
@@ -48,7 +49,7 @@ const BottomBar = ({ unreadCount = 0 }: { unreadCount?: number }) => {
                 )}
               </span>
               <span className="max-w-full truncate text-[10px] font-medium">
-                {link.label === "Create Thread" ? "Create" : link.label}
+                {link.label}
               </span>
             </Link>
           )
