@@ -18,10 +18,9 @@ export async function updateThreadContent(threadId: string, text: string, imageU
   }
   await connectToDB()
   const topics = normalizedText.match(/#\w+/g)?.map((tag) => tag.slice(1)) ?? []
-  const taggedUsers = normalizedText.match(/@\w+/g)?.map((tag) => tag.slice(1)) ?? []
   const updated = await Thread.findOneAndUpdate(
     { _id: threadId, author: user._id },
-    { $set: { text: normalizedText, imageUrl, topics, taggedUsers } },
+    { $set: { text: normalizedText, imageUrl, topics } },
     { new: true, runValidators: true }
   )
   if (!updated) throw new Error("Thread not found or you are not allowed to edit it.")
