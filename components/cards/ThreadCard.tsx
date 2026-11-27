@@ -39,7 +39,7 @@ const Content = ({ content }: { content: string }) => {
   const parts = content.split(regex)
 
   return (
-    <p className="mt-3 whitespace-pre-wrap break-words text-[15px] leading-7 text-light-2">
+    <p className="mt-3 whitespace-pre-wrap break-words text-[15px] leading-[1.75] text-light-2 sm:text-base">
       {parts.map((part, index) => {
         if (part.match(/@\w+/)) {
           return (
@@ -86,16 +86,16 @@ const ThreadCard = async ({
 
   return (
     <article
-      className={`group flex w-full flex-col overflow-hidden rounded-2xl border border-white/[0.07] transition duration-200 hover:border-white/[0.13] ${
+      className={`group flex w-full flex-col overflow-hidden rounded-3xl border border-white/[0.075] transition duration-200 hover:border-primary-500/30 hover:shadow-xl hover:shadow-black/20 ${
         isComment
           ? "bg-transparent px-0 py-2 xs:px-5"
-          : "bg-gradient-to-br from-dark-2 to-dark-3 p-5 shadow-lg shadow-black/10 sm:p-6"
+          : "bg-[var(--surface-1)] p-5 shadow-lg shadow-black/10 sm:p-6"
       }`}
     >
-      <div className="flex items-start gap-3 sm:gap-4">
+      <div className="flex items-start gap-3.5 sm:gap-4">
         <div className="flex shrink-0 flex-col items-center">
           {author?.id ? (
-            <Link href={`/profile/${author.id}`} className="relative h-11 w-11 overflow-hidden rounded-full ring-2 ring-white/10 transition hover:ring-primary-500/70">
+            <Link href={`/profile/${author.id}`} className="relative h-11 w-11 overflow-hidden rounded-full ring-2 ring-white/[0.08] transition hover:ring-primary-500/70 sm:h-12 sm:w-12">
               <Image src={author.image} alt={`${author.name}'s profile picture`} fill sizes="44px" className="object-cover" />
             </Link>
           ) : (
@@ -111,8 +111,8 @@ const ThreadCard = async ({
             <div className="min-w-0">
               {author?.id ? (
                 <Link href={`/profile/${author.id}`} className="inline-flex max-w-full flex-wrap items-baseline gap-x-2 rounded-sm hover:opacity-80">
-                  <span className="truncate text-sm font-semibold text-light-1 sm:text-base">{author.name}</span>
-                  <span className="truncate text-sm text-gray-1">@{author.username}</span>
+                  <span className="truncate text-sm font-semibold tracking-tight text-light-1 sm:text-[15px]">{author.name}</span>
+                  <span className="truncate text-xs text-gray-1 sm:text-sm">@{author.username}</span>
                 </Link>
               ) : (
                 <div className="flex flex-wrap items-baseline gap-x-2">
@@ -132,14 +132,14 @@ const ThreadCard = async ({
           {content && <Content content={content} />}
 
           {imageUrl && (
-            <div className="mt-4 overflow-hidden rounded-xl border border-white/10 bg-black/20">
+            <div className="mt-4 overflow-hidden rounded-2xl border border-white/[0.08] bg-black/20">
               <Image
                 src={imageUrl}
                 alt="Image attached to thread"
                 width={1200}
                 height={900}
                 sizes="(max-width: 768px) 100vw, 720px"
-                className="max-h-[560px] w-full object-contain"
+                className="max-h-[620px] w-full object-contain transition duration-300 group-hover:scale-[1.005]"
               />
             </div>
           )}
@@ -181,7 +181,7 @@ const ThreadCard = async ({
       </div>
 
       {!community ? (
-        <p className="mt-4 text-xs text-gray-1">{formatDateString(createdAt)}</p>
+        <p className="mt-3 pl-0.5 text-[11px] font-medium tracking-wide text-gray-1">{formatDateString(createdAt)}</p>
       ) : (
         !isComment && (
           <Link href={`/communities/${community.id}`} className="mt-4 inline-flex w-fit items-center gap-2 text-xs text-gray-1 transition hover:text-light-2">
