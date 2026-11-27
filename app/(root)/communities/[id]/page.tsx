@@ -106,9 +106,8 @@ const page = async ({
           <TabsContent value="members" className="w-full text-light-1">
             <section className="mt-9 flex flex-col gap-10">
               {communityDetail.members?.map((member: any) => (
-                <>
+                <div key={member.id} className="flex flex-col">
                   <UserCard
-                    key={member.id}
                     id={member.id}
                     name={member.name}
                     username={member.username}
@@ -132,7 +131,7 @@ const page = async ({
                       </button>
                     </form>
                   )}
-                </>
+                </div>
               ))}
             </section>
           </TabsContent>
