@@ -1,6 +1,6 @@
 export default function Loading() {
   return (
-    <div className="w-full animate-pulse" aria-label="Loading feed" role="status">
+    <div className="w-full animate-pulse" aria-label="Loading page" role="status">
       <div className="mb-7 border-b border-white/[0.07] pb-6">
         <div className="mb-3 h-3 w-20 rounded-full bg-white/10" />
         <div className="h-8 w-36 rounded-lg bg-white/10" />
@@ -29,7 +29,7 @@ export default function Loading() {
           </div>
         ))}
       </div>
-      <span className="sr-only">Loading conversations…</span>
+      <span className="sr-only">Loading page…</span>
     </div>
   )
 }
