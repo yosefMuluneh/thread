@@ -16,6 +16,7 @@ module.exports = {
       },
     },
     fontSize: {
+      ...require("tailwindcss/defaultTheme").fontSize,
       "heading1-bold": [
         "36px",
         {
