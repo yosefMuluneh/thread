@@ -56,6 +56,8 @@ const PostThread = ({ userId }: { userId: string }) => {
 
     form.clearErrors("thread")
     setImageFile(file)
+    // Reset the native input so the same file can be selected again after removal.
+    event.currentTarget.value = ""
 
     const reader = new FileReader()
     reader.onload = () => setImagePreview(String(reader.result))
