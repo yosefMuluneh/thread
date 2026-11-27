@@ -10,6 +10,7 @@ import { LeftSideBar } from "@/components/shared/LeftSideBar";
 import RightSideBar from "@/components/shared/RightSideBar";
 import BottomBar from "@/components/shared/BottomBar";
 import { LikeStateProvider } from "@/components/providers/LikeStateProvider";
+import { getUnreadNotificationCount } from "@/lib/actions/notification.actions";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -30,7 +31,7 @@ export default function RootLayout({
           <LikeStateProvider>
           <TopBar/>
             <main className="flex flex-row">
-              <LeftSideBar/>
+              <LeftSideBar unreadCount={unreadCount}/>
               <section className="main-container">
                 <div className="w-full max-w-4xl">
                   {children}
@@ -39,7 +40,7 @@ export default function RootLayout({
               <RightSideBar/>
             </main>
 
-          <BottomBar/>
+          <BottomBar unreadCount={unreadCount}/>
           </LikeStateProvider>
           </body>
       </html>
