@@ -48,7 +48,7 @@ const Comment = ({threadId, currentUserImage, currentUserId}:Props) => {
   return (
     <Form {...form}>
     <form onSubmit={form.handleSubmit(onSubmit)} 
-    className="comment-form">
+    className="comment-form rounded-2xl border border-white/[0.07] bg-[var(--surface-1)] px-4 sm:px-5">
       <FormField
         control={form.control}
         name="thread"
@@ -65,7 +65,7 @@ const Comment = ({threadId, currentUserImage, currentUserId}:Props) => {
               <Input
               type="text"
               placeholder="Comment here..."
-              className="no-focus text-light-1 outline-none"
+              className="no-focus min-h-11 rounded-xl border border-white/[0.07] bg-white/[0.025] px-4 text-sm text-light-1 outline-none placeholder:text-gray-1 focus-visible:border-primary-500/50"
               {...field}
               />
             </FormControl>
@@ -74,7 +74,7 @@ const Comment = ({threadId, currentUserImage, currentUserId}:Props) => {
         )}
       />
       <Button type='submit' className='comment-form_btn' disabled={form.formState.isSubmitting}> 
-        {form.formState.isSubmitting ? 'Replying...' : 'Reply'}
+        {form.formState.isSubmitting ? 'Replying…' : 'Reply'}
       </Button>
       </form>
       </Form>
