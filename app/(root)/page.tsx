@@ -21,7 +21,10 @@ async function Home({
 
   const pageParam = resolvedSearchParams.page;
   const pageNumber = Array.isArray(pageParam) ? pageParam[0] : pageParam;
-  const [result, peopleResult] = await Promise.all([\n    fetchThreads(pageNumber ? Number(pageNumber) : 1, 30),\n    fetchUsers({ userId: user.id, pageNumber: 1, pageSize: 8 }),\n  ]);
+  const [result, peopleResult] = await Promise.all([
+    fetchThreads(pageNumber ? Number(pageNumber) : 1, 30),
+    fetchUsers({ userId: user.id, pageNumber: 1, pageSize: 8 }),
+  ]);
 
   return (
     <div className="w-full">
