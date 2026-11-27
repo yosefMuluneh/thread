@@ -13,6 +13,7 @@ import {
   fetchCommunityDetails,
   fetchCommunityAdminData,
   fetchMyCommunities,
+  removeCommunityMember,
 } from "@/lib/actions/community.actions";
 import CommunityAdminPanel from "@/components/shared/CommunityAdminPanel";
 import UserCard from "@/components/cards/UserCard";
@@ -112,7 +113,24 @@ const page = async ({
                   username={member.username}
                   imgUrl={member.image}
                   personType="User"
+                  currentUserId={user.id}
                 />
+                {isCreator && member.id !== user.id && (
+                  <form
+                    action={async () => {
+                      "use server";
+                      await removeCommunityMember(routeParams.id, member.id);
+                    }}
+                    className="-mt-8 flex justify-end"
+                  >
+                    <button
+                      type="submit"
+                      className="rounded-lg border border-red-500/50 px-3 py-1.5 text-small-semibold text-red-400 transition hover:bg-red-500/10"
+                    >
+                      Remove member
+                    </button>
+                  </form>
+                )}
               ))}
             </section>
           </TabsContent>
