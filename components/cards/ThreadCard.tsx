@@ -35,13 +35,13 @@ interface Props {
 }
 
 const Content = ({ content }: { content: string }) => {
-  const regex = /(@\\w+|#\\w+)/g
+  const regex = /(@\w+|#\w+)/g
   const parts = content.split(regex)
 
   return (
     <p className="mt-3 whitespace-pre-wrap break-words text-[15px] leading-7 text-light-2">
       {parts.map((part, index) => {
-        if (part.match(/@\\w+/)) {
+        if (part.match(/@\w+/)) {
           return (
             <Link key={index} href={`/profile/${part.slice(1)}`} className="font-medium text-blue-400 transition hover:text-blue-300">
               {part}
@@ -49,7 +49,7 @@ const Content = ({ content }: { content: string }) => {
           )
         }
 
-        if (part.match(/#\\w+/)) {
+        if (part.match(/#\w+/)) {
           return (
             <Link key={index} href={`/topic/${part.slice(1)}`} className="font-medium text-blue-400 transition hover:text-blue-300">
               {part}
