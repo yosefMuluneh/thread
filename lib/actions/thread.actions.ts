@@ -138,6 +138,14 @@ export async function createThread({ text, author, communityId, path, taggedUser
         { _id: originalThread._id },
         { $addToSet: { repostedIn: createdThread._id } }
       );
+      await createNotification({
+        recipientId: originalThread.author,
+        actorId: authenticatedUser._id,
+        type: "repost",
+        entityType: "thread",
+        entityId: originalThread._id.toString(),
+        message: "reposted your thread.",
+      });
     }
 
     revalidatePath(path);
