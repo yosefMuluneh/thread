@@ -1,13 +1,14 @@
 import mongoose from "mongoose";
 
-const threadSchema = new mongoose.Schema({ 
-    text: { type: String, required: true },
+const threadSchema = new mongoose.Schema({
+    text: { type: String, required: true, default: "" },
+    imageUrl: { type: String, default: null },
     author: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
         required: true
     },
-    community:{
+    community: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Community",
     },
@@ -21,45 +22,32 @@ const threadSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     },
-    parentId:{
+    parentId: {
         type: String
     },
-    children: [
-        {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Thread"
-        }
-    ],
-    topics: [{
-        type: String
-    }
-    ],
-    repost: [
-        {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Thread"
-        }
-    ],
-    repostedIn: [
-        {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Thread"
-        }
-    ],
-    sharedBy : [
-        {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "User"
-        }
-    ],
-    likedBy : [
-        {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "User"
-        }
-    ],
-  });
+    children: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Thread"
+    }],
+    topics: [{ type: String }],
+    repost: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Thread"
+    }],
+    repostedIn: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Thread"
+    }],
+    sharedBy: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User"
+    }],
+    likedBy: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User"
+    }],
+});
 
-const Thread = mongoose.models.Thread || mongoose.model('Thread', threadSchema);
+const Thread = mongoose.models.Thread || mongoose.model("Thread", threadSchema);
 
 export default Thread;
