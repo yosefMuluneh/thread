@@ -1,30 +1,54 @@
-import React from 'react'
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
-import CommunityCard from '../cards/CommunityCard'
-import UserCard from '../cards/UserCard'
+"use client";
 
-const SuggestedUsers = ({ users } : { users : any[]}) => {
+import FollowButton from "@/components/shared/FollowButton";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import UserCard from "../cards/UserCard";
+
+interface SuggestedUsersProps {
+  users: any[];
+  followingIds: string[];
+}
+
+const SuggestedUsers = ({ users, followingIds }: SuggestedUsersProps) => {
   return (
-    <ScrollArea className="w-full max-h-96 border bg-dark-1 border-gray-700 rounded-md px-2">
-        <h3 className='text-heading4-medium text-light-1 mb-5 sticky top-0 bg-dark-1 z-10 py-2'>Suggested Users</h3>
+    <ScrollArea className="w-full max-h-96 rounded-2xl border border-white/[0.08] bg-[var(--surface-1)] px-3">
+      <h3 className="sticky top-0 z-10 mb-4 bg-[var(--surface-1)] py-3 text-heading4-medium text-light-1">
+        Suggested Users
+      </h3>
 
-      <div  className='flex flex-col gap-4 mb-5' >
+      <div className="mb-4 flex flex-col gap-3">
+        {users.map((user) => {
+          const isFollowing = followingIds.includes(user._id.toString());
 
-{
-  users.map((user) => (
-    <div key={user._id} className='rounded border-1 community-card p-3 '>
-      <UserCard  id={user.id} name={user.name} imgUrl={user.image} username={user.username} personType='User'/>
-    </div>
-    
-  ))
-
-}
-
-</div>
-     
+          return (
+            <div
+              key={user._id}
+              className="rounded-xl border border-white/[0.06] bg-[var(--surface-2)] p-3"
+            >
+              <div className="flex min-w-0 items-center gap-2">
+                <div className="min-w-0 flex-1">
+                  <UserCard
+                    id={user.id}
+                    name={user.name}
+                    imgUrl={user.image}
+                    username={user.username}
+                    personType="User"
+                    hideViewButton
+                  />
+                </div>
+                {!isFollowing && (
+                  <FollowButton
+                    targetUserId={user.id}
+                    initialFollowing={false}
+                  />
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </ScrollArea>
-  )
-}
+  );
+};
 
-export default SuggestedUsers
+export default SuggestedUsers;
